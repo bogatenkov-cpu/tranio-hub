@@ -272,6 +272,21 @@ main { flex: 1; overflow-y: auto; padding: 24px 24px 40px; min-width: 0; }
 .tg-folder-sub { font-size: 13px; color: var(--text-secondary); }
 .tg-folder-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: var(--text-inverse); border-radius: var(--radius-md); padding: 11px 20px; font-size: 14px; font-weight: 500; text-decoration: none; font-family: 'Golos Text', Arial, sans-serif; transition: background .2s; white-space: nowrap; }
 .tg-folder-btn:hover { background: #4E8DC5; }
+
+/* POSTS */
+.posts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.post-card { background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px; box-shadow: var(--shadow-sm); transition: transform .2s, box-shadow .2s; display: flex; flex-direction: column; }
+.post-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.post-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.post-channel { font-size: 12px; font-weight: 500; color: var(--accent); }
+.post-date { font-size: 11px; color: var(--text-tertiary); margin-left: auto; }
+.post-text { font-size: 13px; color: var(--text-primary); line-height: 1.5; flex: 1; margin-bottom: 12px; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; }
+.post-footer { display: flex; align-items: center; justify-content: space-between; }
+.post-views { font-size: 11px; color: var(--text-tertiary); }
+.post-link { font-size: 12px; color: var(--accent); text-decoration: none; font-weight: 500; }
+.post-link:hover { text-decoration: underline; }
+.posts-loading { text-align: center; padding: 40px; color: var(--text-tertiary); }
+.posts-tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
 </style>
 </head>
 <body>
@@ -443,10 +458,24 @@ main { flex: 1; overflow-y: auto; padding: 24px 24px 40px; min-width: 0; }
         <div class="page-hd">
           <div>
             <div class="page-title">Telegram-каналы Tranio</div>
-            <div class="page-sub">Все каналы компании — подписывайтесь и следите за обновлениями</div>
+            <div class="page-sub">Последние посты и все каналы компании</div>
           </div>
           <button class="fbtn" onclick="showMat()">&#8592; Назад</button>
         </div>
+
+        <!-- LATEST POSTS -->
+        <div style="margin-bottom:28px">
+          <div style="font-size:18px;font-weight:500;margin-bottom:4px;letter-spacing:-.3px">Последние посты</div>
+          <div style="font-size:13px;color:var(--text-secondary);margin-bottom:14px">Свежие публикации из всех каналов</div>
+          <div class="posts-tabs" id="posts-tabs">
+            <button class="fbtn active" onclick="filterPosts(null,this)">Все</button>
+          </div>
+          <div id="posts-grid" class="posts-grid">
+            <div class="posts-loading"><div class="spinner"></div><div>Загружаем посты...</div></div>
+          </div>
+        </div>
+
+        <div style="font-size:18px;font-weight:500;margin-bottom:14px;letter-spacing:-.3px">Все каналы</div>
 
         <div class="tg-folder-banner">
           <div class="tg-folder-text">
@@ -1280,9 +1309,70 @@ function showAct() {
   renderAct();
   closeSidebar();
 }
+let postsLoaded = false;
+let allPosts = [];
+
+async function loadPosts() {
+  if (postsLoaded) return;
+  try {
+    const resp = await fetch('/api/posts');
+    const data = await resp.json();
+    allPosts = data.posts || [];
+    postsLoaded = true;
+    buildPostsTabs();
+    renderPosts(allPosts);
+  } catch (e) {
+    document.getElementById('posts-grid').innerHTML = '<div class="posts-loading">Не удалось загрузить посты</div>';
+  }
+}
+
+function buildPostsTabs() {
+  const tabs = document.getElementById('posts-tabs');
+  const channels = [...new Set(allPosts.map(p => p.channel))];
+  const channelMap = {};
+  allPosts.forEach(p => { channelMap[p.channel] = { name: p.channelName, flag: p.flag }; });
+  let html = '<button class="fbtn active" onclick="filterPosts(null,this)">Все</button>';
+  channels.forEach(ch => {
+    const info = channelMap[ch];
+    html += `<button class="fbtn" onclick="filterPosts('${ch}',this)">${info.flag} ${info.name}</button>`;
+  });
+  tabs.innerHTML = html;
+}
+
+function filterPosts(channel, btn) {
+  document.querySelectorAll('#posts-tabs .fbtn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const filtered = channel ? allPosts.filter(p => p.channel === channel) : allPosts;
+  renderPosts(filtered);
+}
+
+function renderPosts(posts) {
+  const grid = document.getElementById('posts-grid');
+  if (!posts.length) {
+    grid.innerHTML = '<div class="posts-loading">Нет постов</div>';
+    return;
+  }
+  grid.innerHTML = posts.map(p => {
+    const d = p.date ? new Date(p.date) : null;
+    const dateStr = d ? d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+    return `<div class="post-card">
+      <div class="post-head">
+        <span class="post-channel">${p.flag} ${p.channelName}</span>
+        <span class="post-date">${dateStr}</span>
+      </div>
+      <div class="post-text">${p.text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+      <div class="post-footer">
+        <span class="post-views">${p.views ? '👁 ' + p.views : ''}</span>
+        <a href="${p.link}" target="_blank" rel="noopener" class="post-link">Читать →</a>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function showTg() {
   hideAllViews();
   document.getElementById('tg-view').style.display = 'block';
+  loadPosts();
   closeSidebar();
 }
 function toggleSidebar() {
