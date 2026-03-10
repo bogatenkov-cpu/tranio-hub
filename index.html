@@ -386,7 +386,7 @@ main { flex: 1; overflow-y: auto; padding: 24px 20px 40px; min-width: 0; }
 //    ID | Название | Категория | Подкатегория | Страна | Тип файла | Размер | Дата | Скачиваний | Новинка | Ссылка на файл | Иконка | Описание
 // 2. Опубликуй лист: Файл → Опубликовать → CSV
 // 3. Вставь URL ниже
-const SHEET_URL = ''; // Вставь сюда URL опубликованного Google Sheet в CSV
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1NFwNZiXJGaULuVx6LRsriJM-YUdDyIRof7n9qSQsCvw/export?format=csv&gid=0';
 
 // =============================
 // USERS (позже — Google OAuth / Supabase)
@@ -554,25 +554,24 @@ async function loadData() {
 
 function parseCSV(csv) {
   const lines = csv.split('\n').filter(l => l.trim());
-  // Skip header row (first row after the title row)
-  const dataLines = lines.slice(2); // skip title + header
+  // Skip header row only (ID,Название,Категория,...)
+  const dataLines = lines.slice(1);
   return dataLines.map((line, idx) => {
     const cols = parseCSVLine(line);
-    if (cols.length < 11) return null;
+    if (cols.length < 6 || !cols[1]) return null;
     return {
       id: parseInt(cols[0]) || idx+1,
       title: cols[1] || '',
       cat: cols[2] || '',
-      subcat: cols[3] || '',
-      country: cols[4] || '',
-      type: cols[5] || 'pdf',
-      size: cols[6] || '',
-      date: cols[7] || '',
-      dl: parseInt(cols[8]) || 0,
-      isNew: (cols[9] || '').toUpperCase() === 'TRUE',
-      url: cols[10] || '',
-      ico: cols[11] || '📄',
-      desc: cols[12] || '',
+      country: cols[3] || '',
+      type: cols[4] || 'pdf',
+      size: cols[5] || '',
+      date: cols[6] || '',
+      dl: parseInt(cols[7]) || 0,
+      isNew: (cols[8] || '').toUpperCase() === 'TRUE',
+      url: cols[9] || '',
+      ico: cols[10] || '📄',
+      desc: cols[11] || '',
     };
   }).filter(Boolean);
 }
