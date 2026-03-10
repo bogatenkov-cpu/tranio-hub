@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Tranio Hub — MVP</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy:       #0B1C2D;
+  --navy-mid:   #152840;
+  --navy-light: #1E3A52;
+  --teal:       #2A9D8F;
+  --teal-bright:#3ABFB0;
+  --gold:       #E9C46A;
+  --cream:      #F8F4EE;
+  --muted:      #6B8A9E;
+  --border:     rgba(42,157,143,0.18);
+  --radius:     12px;
+  --sidebar-w:  240px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--navy);
+  color: var(--cream);
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* LOGIN */
+#login-screen {
+  position: fixed; inset: 0;
+  background: var(--navy);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200; padding: 20px;
+  transition: opacity .4s, transform .4s;
+}
+#login-screen.hide { opacity: 0; transform: translateY(-16px); pointer-events: none; }
+
+.login-card {
+  background: var(--navy-mid); border: 1px solid var(--border);
+  border-radius: 16px; padding: 40px 32px;
+  width: 100%; max-width: 360px;
+  position: relative; overflow: hidden;
+}
+.login-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--teal), transparent);
+}
+.login-logo { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -.5px; color: var(--cream); margin-bottom: 6px; }
+.login-logo span { color: var(--teal-bright); }
+.login-sub { font-size: 13px; color: var(--muted); margin-bottom: 28px; line-height: 1.4; }
+label.fl { display: block; font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 6px; }
+.fi { width: 100%; background: var(--navy); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; color: var(--cream); font-family: 'DM Sans', sans-serif; font-size: 15px; outline: none; transition: border-color .2s; margin-bottom: 16px; -webkit-appearance: none; }
+.fi:focus { border-color: var(--teal); }
+.btn-login { width: 100%; background: var(--teal); color: var(--navy); border: none; border-radius: 8px; padding: 14px; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: .3px; transition: background .2s, transform .1s; -webkit-appearance: none; }
+.btn-login:hover { background: var(--teal-bright); }
+.btn-login:active { transform: scale(.98); }
+.login-hint { margin-top: 14px; font-size: 11px; color: var(--muted); text-align: center; }
+.login-error { font-size: 12px; color: #e07070; margin-top: -10px; margin-bottom: 14px; display: none; }
+
+/* APP */
+#app { display: none; }
+#app.visible { display: flex; flex-direction: column; min-height: 100dvh; animation: fadeUp .4s ease; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+/* HEADER */
+header { display: flex; align-items: center; justify-content: space-between; padding: 0 20px; height: 56px; flex-shrink: 0; background: var(--navy-mid); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+.h-logo { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 800; color: var(--cream); letter-spacing: -.3px; }
+.h-logo span { color: var(--teal-bright); }
+.h-right { display: flex; align-items: center; gap: 10px; }
+.user-badge { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, var(--teal), var(--navy-light)); display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700; color: var(--cream); flex-shrink: 0; }
+.user-name { font-size: 13px; color: var(--muted); }
+.btn-sm { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 5px 10px; font-size: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: border-color .2s, color .2s; -webkit-appearance: none; }
+.btn-sm:hover { border-color: var(--teal); color: var(--cream); }
+
+.hamburger { display: none; flex-direction: column; gap: 4px; cursor: pointer; padding: 4px; background: none; border: none; }
+.hamburger span { display: block; width: 20px; height: 2px; background: var(--muted); border-radius: 2px; transition: transform .3s, opacity .3s; }
+.hamburger.open span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.hamburger.open span:nth-child(2) { opacity: 0; }
+.hamburger.open span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+/* LAYOUT */
+.body-wrap { display: flex; flex: 1; position: relative; }
+
+/* SIDEBAR */
+aside { width: var(--sidebar-w); flex-shrink: 0; background: var(--navy-mid); border-right: 1px solid var(--border); padding: 20px 0; overflow-y: auto; transition: transform .3s ease; }
+.s-section { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; padding: 0 18px 8px; margin-top: 4px; }
+.s-item { display: flex; align-items: center; gap: 9px; padding: 9px 18px; font-size: 13px; cursor: pointer; color: var(--muted); border-left: 2px solid transparent; transition: color .15s, border-color .15s, background .15s; user-select: none; }
+.s-item:hover { color: var(--cream); background: rgba(42,157,143,0.05); }
+.s-item.active { color: var(--teal-bright); border-left-color: var(--teal-bright); background: rgba(42,157,143,0.08); }
+.s-ico { font-size: 14px; width: 18px; text-align: center; }
+.s-cnt { margin-left: auto; font-size: 10px; font-weight: 600; background: rgba(42,157,143,0.15); color: var(--teal-bright); border-radius: 10px; padding: 2px 6px; }
+.s-divider { height: 1px; background: var(--border); margin: 12px 18px; }
+.s-sub { padding-left: 36px; font-size: 12px; }
+
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 90; }
+.overlay.visible { display: block; }
+
+/* MAIN */
+main { flex: 1; overflow-y: auto; padding: 24px 20px 40px; min-width: 0; }
+
+.page-hd { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 12px; flex-wrap: wrap; }
+.page-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -.5px; }
+.page-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+/* STATS */
+.stats { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin-bottom: 20px; }
+.stat { background: var(--navy-mid); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+.stat-n { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: var(--teal-bright); }
+.stat-l { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* CONTROLS */
+.controls { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+.search-wrap { position: relative; }
+.search-ico { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 14px; color: var(--muted); pointer-events: none; }
+.search-input { width: 100%; background: var(--navy-mid); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px 10px 36px; color: var(--cream); font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; transition: border-color .2s; -webkit-appearance: none; }
+.search-input:focus { border-color: var(--teal); }
+.search-input::placeholder { color: var(--muted); }
+.filter-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.filter-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; font-weight: 600; margin-right: 4px; }
+.fbtn { background: var(--navy-mid); border: 1px solid var(--border); color: var(--muted); border-radius: 7px; padding: 7px 13px; font-size: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 500; transition: all .15s; white-space: nowrap; -webkit-appearance: none; }
+.fbtn:hover, .fbtn.active { border-color: var(--teal); color: var(--teal-bright); background: rgba(42,157,143,0.08); }
+.fbtn-reset { background: none; border: 1px solid rgba(220,80,60,.3); color: #e07060; border-radius: 7px; padding: 7px 13px; font-size: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .15s; white-space: nowrap; }
+.fbtn-reset:hover { background: rgba(220,80,60,.1); }
+
+/* COUNTRY FILTER */
+.country-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.country-btn { background: var(--navy-mid); border: 1px solid var(--border); color: var(--muted); border-radius: 7px; padding: 5px 10px; font-size: 11px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .15s; white-space: nowrap; }
+.country-btn:hover, .country-btn.active { border-color: var(--teal); color: var(--teal-bright); background: rgba(42,157,143,0.08); }
+
+/* GRID */
+.grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(260px,1fr)); gap: 14px; }
+
+.card { background: var(--navy-mid); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: transform .2s, border-color .2s, box-shadow .2s; cursor: pointer; }
+.card:hover { transform: translateY(-2px); border-color: rgba(42,157,143,.4); box-shadow: 0 8px 24px rgba(0,0,0,.3); }
+.c-thumb { height: 100px; position: relative; display: flex; align-items: center; justify-content: center; font-size: 32px; }
+.ct-pdf   { background: linear-gradient(135deg,#1a2a3a,#0f2030); }
+.ct-pptx  { background: linear-gradient(135deg,#1a2230,#2a1a30); }
+.ct-image { background: linear-gradient(135deg,#1a2a2a,#0f2820); }
+.ct-doc   { background: linear-gradient(135deg,#1a2430,#0f2030); }
+.ct-zip   { background: linear-gradient(135deg,#2a2a1a,#201a0f); }
+.ct-video { background: linear-gradient(135deg,#2a1a2a,#1a0f20); }
+.ct-html  { background: linear-gradient(135deg,#1a2a2a,#0f2028); }
+.c-badge { position: absolute; top: 8px; right: 8px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; padding: 2px 7px; border-radius: 4px; }
+.b-pdf   { background: rgba(220,80,60,.25);  color: #e07060; }
+.b-pptx  { background: rgba(180,60,220,.25); color: #c080e0; }
+.b-image { background: rgba(60,180,140,.25); color: #3abfb0; }
+.b-doc   { background: rgba(60,100,220,.25); color: #6090e0; }
+.b-zip   { background: rgba(180,160,60,.25); color: #c0a840; }
+.b-video { background: rgba(160,60,180,.25); color: #d080e0; }
+.b-html  { background: rgba(60,180,180,.25); color: #60c0c0; }
+.c-new { position: absolute; top: 8px; left: 8px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; padding: 2px 7px; border-radius: 4px; background: rgba(233,196,106,.25); color: var(--gold); }
+.c-body { padding: 12px 14px 14px; }
+.c-cat { font-size: 10px; text-transform: uppercase; letter-spacing: .7px; color: var(--teal); font-weight: 600; margin-bottom: 5px; }
+.c-subcat { font-size: 10px; color: var(--gold); margin-bottom: 4px; }
+.c-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; line-height: 1.3; color: var(--cream); margin-bottom: 4px; }
+.c-desc { font-size: 11px; color: var(--muted); line-height: 1.4; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.c-meta { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--muted); }
+.c-country { font-size: 10px; color: var(--muted); margin-bottom: 6px; }
+.btn-dl { display: flex; align-items: center; justify-content: center; gap: 6px; background: rgba(42,157,143,.15); border: 1px solid rgba(42,157,143,.3); color: var(--teal-bright); border-radius: 7px; padding: 8px 12px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .15s; margin-top: 10px; width: 100%; -webkit-appearance: none; min-height: 40px; text-decoration: none; }
+.btn-dl:hover { background: rgba(42,157,143,.25); border-color: var(--teal); }
+.btn-dl.done { background: rgba(42,157,143,.06); color: var(--muted); border-color: var(--border); }
+
+/* ACTIVITY */
+.act-table-wrap { background: var(--navy-mid); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; overflow-x: auto; }
+.act-table { width: 100%; border-collapse: collapse; min-width: 480px; }
+.act-table th { font-size: 10px; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); font-weight: 600; padding: 11px 14px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.act-table td { font-size: 12px; padding: 11px 14px; border-bottom: 1px solid rgba(42,157,143,.06); color: var(--cream); }
+.act-table tr:last-child td { border-bottom: none; }
+.act-table tr:hover td { background: rgba(42,157,143,.04); }
+.tag { font-size: 10px; background: rgba(42,157,143,.12); color: var(--teal); padding: 2px 7px; border-radius: 4px; }
+
+.empty { text-align: center; padding: 48px 20px; color: var(--muted); grid-column: 1/-1; }
+.empty-ico { font-size: 36px; margin-bottom: 10px; }
+
+/* LOADING */
+.loading { text-align: center; padding: 60px 20px; grid-column: 1/-1; }
+.spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--teal); border-radius: 50%; animation: spin .8s linear infinite; margin-bottom: 12px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* TOAST */
+#toast { position: fixed; bottom: 72px; left: 50%; transform: translateX(-50%) translateY(10px); background: var(--navy-light); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; font-size: 13px; color: var(--cream); display: flex; align-items: center; gap: 8px; opacity: 0; transition: opacity .3s, transform .3s; z-index: 300; pointer-events: none; white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* DATA SOURCE INDICATOR */
+.data-src { font-size: 10px; color: var(--muted); padding: 4px 18px 12px; display: flex; align-items: center; gap: 6px; }
+.data-dot { width: 6px; height: 6px; border-radius: 50%; }
+.data-dot.online { background: #3abfb0; }
+.data-dot.offline { background: #e07060; }
+
+/* BOTTOM NAV */
+.bottom-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--navy-mid); border-top: 1px solid var(--border); padding: 6px 0 max(6px, env(safe-area-inset-bottom)); z-index: 100; }
+.bnav-inner { display: flex; justify-content: space-around; }
+.bnav-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; cursor: pointer; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 10px; padding: 4px 12px; transition: color .15s; -webkit-appearance: none; }
+.bnav-btn.active { color: var(--teal-bright); }
+.bnav-ico { font-size: 19px; line-height: 1; }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--navy); }
+::-webkit-scrollbar-thumb { background: var(--navy-light); border-radius: 3px; }
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .hamburger { display: flex; }
+  .user-name { display: none !important; }
+  .bottom-nav { display: block; }
+  aside { position: fixed; top: 56px; left: 0; bottom: 60px; z-index: 95; transform: translateX(-100%); }
+  aside.open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,.4); }
+  main { padding: 16px 14px 80px; }
+  .grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .c-thumb { height: 80px; font-size: 26px; }
+  .stats { gap: 8px; }
+  #toast { bottom: 68px; }
+}
+@media (max-width: 420px) {
+  .grid { grid-template-columns: 1fr; }
+  .login-card { padding: 32px 24px; }
+}
+@media (min-width: 769px) {
+  aside { position: relative; transform: none !important; }
+  .bottom-nav { display: none !important; }
+  .hamburger { display: none !important; }
+  .user-name { display: block; }
+}
+@media (min-width: 1100px) {
+  main { padding: 28px 36px 40px; }
+  .stats { grid-template-columns: repeat(4,1fr); }
+}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">tranio<span>.</span>hub</div>
+    <div class="login-sub">Маркетинговые материалы — только для команды</div>
+    <label class="fl">Email</label>
+    <input type="email" class="fi" id="l-email" placeholder="you@tranio.com" autocomplete="email">
+    <label class="fl">Пароль</label>
+    <input type="password" class="fi" id="l-pass" placeholder="••••••••" autocomplete="current-password">
+    <div class="login-error" id="l-err">Неверный логин или пароль</div>
+    <button class="btn-login" id="l-btn">Войти</button>
+    <div class="login-hint">Доступ только для сотрудников Tranio</div>
+  </div>
+</div>
+
+<div id="app">
+  <header>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="hamburger" id="ham" aria-label="Меню"><span></span><span></span><span></span></button>
+      <div class="h-logo">tranio<span>.</span>hub</div>
+    </div>
+    <div class="h-right">
+      <div class="user-badge" id="u-ini">--</div>
+      <span class="user-name" id="u-name"></span>
+      <button class="btn-sm" onclick="doLogout()">Выйти</button>
+    </div>
+  </header>
+
+  <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+  <div class="body-wrap">
+    <aside id="sidebar">
+      <div class="s-section">Категории</div>
+      <div class="s-item active" data-cat="all" onclick="filterCat('all',this)">
+        <span class="s-ico">&#9672;</span>Все материалы<span class="s-cnt" id="cnt-all">0</span>
+      </div>
+
+      <div class="s-divider"></div>
+      <div class="s-item" data-cat="presentations" onclick="filterCat('presentations',this)">
+        <span class="s-ico">&#9649;</span>Презентации<span class="s-cnt" id="cnt-presentations">0</span>
+      </div>
+      <div class="s-item s-sub" data-cat="pres-regional" onclick="filterCat('pres-regional',this)">
+        <span class="s-ico">&#9670;</span>Региональные
+      </div>
+      <div class="s-item s-sub" data-cat="pres-company" onclick="filterCat('pres-company',this)">
+        <span class="s-ico">&#9670;</span>О компании
+      </div>
+      <div class="s-item" data-cat="email" onclick="filterCat('email',this)">
+        <span class="s-ico">&#9993;</span>E-mail рассылки<span class="s-cnt" id="cnt-email">0</span>
+      </div>
+      <div class="s-item" data-cat="messengers" onclick="filterCat('messengers',this)">
+        <span class="s-ico">&#9998;</span>Скрипты мессенджеров<span class="s-cnt" id="cnt-messengers">0</span>
+      </div>
+      <div class="s-item" data-cat="teasers" onclick="filterCat('teasers',this)">
+        <span class="s-ico">&#9733;</span>Тизеры и сторис<span class="s-cnt" id="cnt-teasers">0</span>
+      </div>
+      <div class="s-item" data-cat="webinars" onclick="filterCat('webinars',this)">
+        <span class="s-ico">&#9654;</span>Записи вебинаров<span class="s-cnt" id="cnt-webinars">0</span>
+      </div>
+      <div class="s-item" data-cat="analytics" onclick="filterCat('analytics',this)">
+        <span class="s-ico">&#9678;</span>Аналитика<span class="s-cnt" id="cnt-analytics">0</span>
+      </div>
+
+      <div class="s-divider"></div>
+      <div class="s-item" onclick="showAct()"><span class="s-ico">&#9681;</span>Лог скачиваний</div>
+
+      <div class="data-src" id="data-src">
+        <span class="data-dot offline"></span> <span>Локальные данные</span>
+      </div>
+    </aside>
+
+    <main>
+      <div id="mat-view">
+        <div class="page-hd">
+          <div>
+            <div class="page-title" id="v-title">Все материалы</div>
+            <div class="page-sub" id="v-sub">Актуальные маркетинговые материалы команды</div>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><div class="stat-n" id="s-files">0</div><div class="stat-l">Файлов</div></div>
+          <div class="stat"><div class="stat-n" id="s-dl">0</div><div class="stat-l">Скачиваний</div></div>
+          <div class="stat"><div class="stat-n" id="s-cats">0</div><div class="stat-l">Категорий</div></div>
+          <div class="stat"><div class="stat-n" id="s-countries">0</div><div class="stat-l">Стран</div></div>
+        </div>
+
+        <div class="controls">
+          <div class="search-wrap">
+            <span class="search-ico">&#8981;</span>
+            <input class="search-input" id="srch" placeholder="Поиск по названию, стране или описанию..." oninput="doSearch()">
+          </div>
+          <div class="filter-row" id="country-filters">
+            <span class="filter-label">Страна:</span>
+            <!-- country buttons rendered dynamically -->
+          </div>
+          <div class="filter-row">
+            <span class="filter-label">Тип:</span>
+            <button class="fbtn" onclick="filterType('pdf',this)">PDF</button>
+            <button class="fbtn" onclick="filterType('pptx',this)">PPTX</button>
+            <button class="fbtn" onclick="filterType('image',this)">Image</button>
+            <button class="fbtn" onclick="filterType('video',this)">Video</button>
+            <button class="fbtn" onclick="filterType('doc',this)">DOC</button>
+            <button class="fbtn" onclick="filterType('html',this)">HTML</button>
+            <button class="fbtn fbtn-reset" onclick="resetFilters()">Сбросить</button>
+          </div>
+        </div>
+        <div class="grid" id="grid">
+          <div class="loading"><div class="spinner"></div><div style="color:var(--muted)">Загрузка материалов...</div></div>
+        </div>
+      </div>
+
+      <div id="act-view" style="display:none">
+        <div class="page-hd">
+          <div>
+            <div class="page-title">Лог скачиваний</div>
+            <div class="page-sub">Кто, когда и что скачал</div>
+          </div>
+          <button class="fbtn" onclick="showMat()">&#8592; Назад</button>
+        </div>
+        <div class="act-table-wrap">
+          <table class="act-table">
+            <thead><tr><th>Файл</th><th>Пользователь</th><th>Время</th><th>Отдел</th></tr></thead>
+            <tbody id="act-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <nav class="bottom-nav">
+    <div class="bnav-inner">
+      <button class="bnav-btn active" id="bn-mat" onclick="showMat();setB('bn-mat')"><span class="bnav-ico">&#9672;</span>Файлы</button>
+      <button class="bnav-btn" id="bn-srch" onclick="focusSrch();setB('bn-srch')"><span class="bnav-ico">&#8981;</span>Поиск</button>
+      <button class="bnav-btn" id="bn-act" onclick="showAct();setB('bn-act')"><span class="bnav-ico">&#9681;</span>Лог</button>
+      <button class="bnav-btn" onclick="doLogout()"><span class="bnav-ico">&#8677;</span>Выйти</button>
+    </div>
+  </nav>
+</div>
+
+<div id="toast"><span>&#11015;</span><span id="t-msg"></span></div>
+
+<script>
+// =============================
+// CONFIG — Google Sheets
+// =============================
+// Чтобы подключить Google Sheets:
+// 1. Создай Google Sheet с такой структурой (лист "Materials"):
+//    ID | Название | Категория | Подкатегория | Страна | Тип файла | Размер | Дата | Скачиваний | Новинка | Ссылка на файл | Иконка | Описание
+// 2. Опубликуй лист: Файл → Опубликовать → CSV
+// 3. Вставь URL ниже
+const SHEET_URL = ''; // Вставь сюда URL опубликованного Google Sheet в CSV
+
+// =============================
+// USERS (позже — Google OAuth / Supabase)
+// =============================
+const USERS = {
+  'evgenii@tranio.com': {pass:'tranio2026',name:'Евгений В.',ini:'ЕВ',dept:'Маркетинг'},
+  'anna@tranio.com':    {pass:'tranio2026',name:'Анна К.',   ini:'АК',dept:'Продажи'},
+  'team@tranio.com':    {pass:'tranio2026',name:'Команда',   ini:'TR',dept:'Общий'},
+};
+
+// =============================
+// CATEGORIES CONFIG
+// =============================
+const CATEGORIES = {
+  'all':            { label: 'Все материалы',       icon: '&#9672;' },
+  'presentations':  { label: 'Презентации',         icon: '&#9649;' },
+  'pres-regional':  { label: 'Презентации региональные', icon: '&#9670;', parent: 'presentations' },
+  'pres-company':   { label: 'Презентации о компании',   icon: '&#9670;', parent: 'presentations' },
+  'email':          { label: 'E-mail рассылки',     icon: '&#9993;' },
+  'messengers':     { label: 'Скрипты мессенджеров', icon: '&#9998;' },
+  'teasers':        { label: 'Тизеры и сторис',     icon: '&#9733;' },
+  'webinars':       { label: 'Записи вебинаров',    icon: '&#9654;' },
+  'analytics':      { label: 'Аналитика',           icon: '&#9678;' },
+};
+
+const COUNTRY_FLAGS = {
+  'Thailand': '🇹🇭', 'UAE': '🇦🇪', 'Cyprus': '🇨🇾', 'Indonesia': '🇮🇩',
+  'Greece': '🇬🇷', 'Turkey': '🇹🇷', 'Oman': '🇴🇲', 'Saudi Arabia': '🇸🇦',
+  'Montenegro': '🇲🇪', 'Spain': '🇪🇸', 'Portugal': '🇵🇹', 'Cambodia': '🇰🇭',
+  'Global': '🌍', 'Tranio Capital': '🏦',
+};
+
+// =============================
+// DEMO DATA (используется пока нет Google Sheet)
+// =============================
+const DEMO_DATA = [
+  // Презентации региональные
+  {id:1,  title:'Недвижимость Таиланда — презентация для клиентов', desc:'Обзор рынка, ключевые локации, типы объектов и доходность', cat:'pres-regional', country:'Thailand', type:'pptx', size:'8.2 MB', date:'2025-03-05', dl:18, isNew:true, ico:'📋', url:''},
+  {id:2,  title:'Инвестиции в Кипр — обзор рынка 2025', desc:'Основные районы, цены, программы ВНЖ через покупку', cat:'pres-regional', country:'Cyprus', type:'pptx', size:'6.1 MB', date:'2025-03-01', dl:14, isNew:true, ico:'📋', url:''},
+  {id:3,  title:'ОАЭ — презентация для инвесторов', desc:'Дубай и Абу-Даби, доходность, visa golden', cat:'pres-regional', country:'UAE', type:'pptx', size:'7.5 MB', date:'2025-02-25', dl:22, isNew:false, ico:'📋', url:''},
+  {id:4,  title:'Бали и Ломбок — обзор для покупателей', desc:'Цены, аренда, ROI, юридические аспекты', cat:'pres-regional', country:'Indonesia', type:'pptx', size:'5.9 MB', date:'2025-02-20', dl:11, isNew:false, ico:'📋', url:''},
+  {id:5,  title:'Греция — ВНЖ через покупку недвижимости', desc:'Программа Golden Visa, требования, процесс', cat:'pres-regional', country:'Greece', type:'pptx', size:'6.3 MB', date:'2025-02-15', dl:9, isNew:false, ico:'📋', url:''},
+  {id:6,  title:'Турция — инвестиции в недвижимость 2025', desc:'Стамбул, Анталья, гражданство через инвестиции', cat:'pres-regional', country:'Turkey', type:'pptx', size:'5.4 MB', date:'2025-02-10', dl:7, isNew:false, ico:'📋', url:''},
+
+  // Презентации о компании
+  {id:7,  title:'Tranio Company Deck — инвесторам', desc:'Общая презентация о компании, миссия, показатели', cat:'pres-company', country:'Global', type:'pptx', size:'8.1 MB', date:'2025-03-02', dl:32, isNew:true, ico:'📋', url:''},
+  {id:8,  title:'Tranio — брошюра для брокеров-партнёров', desc:'Как работает партнёрская программа Tranio', cat:'pres-company', country:'Global', type:'pdf', size:'4.5 MB', date:'2025-01-20', dl:33, isNew:false, ico:'📄', url:''},
+  {id:9,  title:'About Tranio Capital — English', desc:'Investment presentation for international partners', cat:'pres-company', country:'Global', type:'pdf', size:'3.2 MB', date:'2025-02-01', dl:15, isNew:false, ico:'📄', url:''},
+
+  // E-mail рассылки
+  {id:10, title:'Email-шаблон: Новые объекты Таиланда', desc:'HTML-шаблон рассылки для Mindbox, адаптивный', cat:'email', country:'Thailand', type:'html', size:'0.4 MB', date:'2025-03-06', dl:8, isNew:true, ico:'📧', url:''},
+  {id:11, title:'Email-шаблон: Инвестируй в Кипр', desc:'Рассылка для базы по Кипру, варианты ROI', cat:'email', country:'Cyprus', type:'html', size:'0.3 MB', date:'2025-02-28', dl:12, isNew:false, ico:'📧', url:''},
+  {id:12, title:'Email: Приглашение на GPD 2026', desc:'Шаблон приглашения на конференцию', cat:'email', country:'Global', type:'html', size:'0.2 MB', date:'2025-02-20', dl:19, isNew:false, ico:'📧', url:''},
+  {id:13, title:'Email-шаблон: ОАЭ — новые проекты', desc:'Рассылка о новых проектах в Дубае', cat:'email', country:'UAE', type:'html', size:'0.3 MB', date:'2025-02-15', dl:6, isNew:false, ico:'📧', url:''},
+
+  // Скрипты для мессенджеров
+  {id:14, title:'WhatsApp: Первый контакт — Таиланд', desc:'Скрипт для первого сообщения клиенту по Таиланду', cat:'messengers', country:'Thailand', type:'doc', size:'0.1 MB', date:'2025-03-04', dl:25, isNew:true, ico:'💬', url:''},
+  {id:15, title:'Telegram: Шаблон follow-up — ОАЭ', desc:'Серия follow-up сообщений для клиентов ОАЭ', cat:'messengers', country:'UAE', type:'doc', size:'0.1 MB', date:'2025-02-22', dl:18, isNew:false, ico:'💬', url:''},
+  {id:16, title:'WhatsApp: Скрипт для брокеров — универсальный', desc:'Универсальный скрипт для партнёров-брокеров', cat:'messengers', country:'Global', type:'doc', size:'0.1 MB', date:'2025-02-10', dl:30, isNew:false, ico:'💬', url:''},
+  {id:17, title:'Telegram: Приглашение на вебинар', desc:'Шаблон сообщения для приглашения на вебинар', cat:'messengers', country:'Global', type:'doc', size:'0.05 MB', date:'2025-01-28', dl:14, isNew:false, ico:'💬', url:''},
+
+  // Тизеры и сторис
+  {id:18, title:'Тизеры Кипр Q1 2025', desc:'Набор тизеров для Instagram/Facebook, 1080x1080', cat:'teasers', country:'Cyprus', type:'image', size:'45 MB', date:'2025-03-03', dl:31, isNew:true, ico:'🖼', url:''},
+  {id:19, title:'Сторис: Таиланд — жаркий сезон инвестиций', desc:'Серия сторис для Instagram, вертикальный формат', cat:'teasers', country:'Thailand', type:'image', size:'28 MB', date:'2025-02-25', dl:22, isNew:false, ico:'🖼', url:''},
+  {id:20, title:'Тизеры ОАЭ — Дубай 2025', desc:'Креативы для таргета Facebook/Instagram', cat:'teasers', country:'UAE', type:'image', size:'35 MB', date:'2025-02-18', dl:16, isNew:false, ico:'🖼', url:''},
+  {id:21, title:'Тизер-аффилиат Tranio Capital', desc:'Баннеры для партнёрских размещений', cat:'teasers', country:'Global', type:'image', size:'12 MB', date:'2025-02-05', dl:9, isNew:false, ico:'🖼', url:''},
+  {id:22, title:'Сторис: Греция — Golden Visa', desc:'Серия сторис о программе Golden Visa', cat:'teasers', country:'Greece', type:'image', size:'18 MB', date:'2025-01-30', dl:13, isNew:false, ico:'🖼', url:''},
+
+  // Записи вебинаров
+  {id:23, title:'Вебинар: Инвестиции в Таиланд 2025', desc:'Запись вебинара от 15 февраля, 47 мин', cat:'webinars', country:'Thailand', type:'video', size:'320 MB', date:'2025-02-15', dl:45, isNew:false, ico:'🎥', url:''},
+  {id:24, title:'Вебинар: Как купить на Кипре — пошаговый гид', desc:'Запись от 20 января, 38 мин', cat:'webinars', country:'Cyprus', type:'video', size:'280 MB', date:'2025-01-20', dl:38, isNew:false, ico:'🎥', url:''},
+  {id:25, title:'Вебинар: GPD 2026 — итоги конференции', desc:'Полная запись панельной дискуссии, 1ч 20мин', cat:'webinars', country:'Global', type:'video', size:'580 MB', date:'2025-02-28', dl:27, isNew:true, ico:'🎥', url:''},
+  {id:26, title:'Вебинар: Бали — куда и как инвестировать', desc:'Запись от 5 февраля, 52 мин', cat:'webinars', country:'Indonesia', type:'video', size:'350 MB', date:'2025-02-05', dl:19, isNew:false, ico:'🎥', url:''},
+
+  // Аналитика
+  {id:27, title:'Рынок недвижимости Таиланда 2025', desc:'Полный аналитический обзор: цены, тренды, прогнозы', cat:'analytics', country:'Thailand', type:'pdf', size:'2.4 MB', date:'2025-03-02', dl:14, isNew:true, ico:'📊', url:''},
+  {id:28, title:'Аналитика Кипр — Q4 2024', desc:'Квартальный отчёт по рынку Кипра', cat:'analytics', country:'Cyprus', type:'pdf', size:'1.8 MB', date:'2025-01-15', dl:21, isNew:false, ico:'📊', url:''},
+  {id:29, title:'ОАЭ — рынок недвижимости: тренды и прогноз', desc:'Обзор Дубая и Абу-Даби', cat:'analytics', country:'UAE', type:'pdf', size:'2.1 MB', date:'2025-02-10', dl:16, isNew:false, ico:'📊', url:''},
+  {id:30, title:'Индонезия — Бали/Ломбок обзор 2025', desc:'Цены, аренда, ROI, юридика', cat:'analytics', country:'Indonesia', type:'pdf', size:'1.8 MB', date:'2025-02-08', dl:11, isNew:false, ico:'📊', url:''},
+  {id:31, title:'Макро-прогноз Tranio 2025', desc:'Глобальный обзор рынков недвижимости', cat:'analytics', country:'Global', type:'pdf', size:'3.7 MB', date:'2025-03-01', dl:28, isNew:true, ico:'📊', url:''},
+  {id:32, title:'Турция — обзор рынка и аналитика', desc:'Стамбул, Анталья, тренды, цены', cat:'analytics', country:'Turkey', type:'pdf', size:'1.5 MB', date:'2025-01-25', dl:8, isNew:false, ico:'📊', url:''},
+
+  // Tranio Capital
+  {id:33, title:'Tranio Capital — презентация для инвесторов', desc:'Инвестиционные продукты, доходность, структура фондов', cat:'pres-company', country:'Tranio Capital', type:'pptx', size:'9.2 MB', date:'2025-03-08', dl:12, isNew:true, ico:'📋', url:''},
+  {id:34, title:'Tranio Capital — email для партнёров', desc:'Шаблон рассылки для аффилиатов и партнёров', cat:'email', country:'Tranio Capital', type:'html', size:'0.3 MB', date:'2025-03-01', dl:7, isNew:false, ico:'📧', url:''},
+  {id:35, title:'Тизер Tranio Capital — аффилиат-баннеры', desc:'Баннеры для партнёрских размещений, все форматы', cat:'teasers', country:'Tranio Capital', type:'image', size:'15 MB', date:'2025-02-20', dl:10, isNew:false, ico:'🖼', url:''},
+  {id:36, title:'Вебинар: Как работает Tranio Capital', desc:'Запись вебинара о продуктах и стратегии, 35 мин', cat:'webinars', country:'Tranio Capital', type:'video', size:'240 MB', date:'2025-02-12', dl:21, isNew:false, ico:'🎥', url:''},
+  {id:37, title:'Tranio Capital — аналитика портфеля Q4 2024', desc:'Результаты фондов, доходность, прогноз на 2025', cat:'analytics', country:'Tranio Capital', type:'pdf', size:'2.8 MB', date:'2025-01-30', dl:18, isNew:false, ico:'📊', url:''},
+  {id:38, title:'Скрипт WhatsApp: Tranio Capital для клиентов', desc:'Шаблон первого контакта по инвестиционным продуктам', cat:'messengers', country:'Tranio Capital', type:'doc', size:'0.1 MB', date:'2025-02-05', dl:14, isNew:false, ico:'💬', url:''},
+];
+
+// =============================
+// STATE
+// =============================
+let MATS = [];
+let curUser = null;
+let filt = { cat: 'all', type: null, country: null };
+let q = '';
+let actLog = [];
+let dataFromSheet = false;
+
+// =============================
+// INIT
+// =============================
+document.getElementById('l-btn').onclick = doLogin;
+document.getElementById('l-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+document.getElementById('ham').onclick = toggleSidebar;
+
+// =============================
+// AUTH
+// =============================
+function doLogin() {
+  const email = document.getElementById('l-email').value.trim().toLowerCase();
+  const pass = document.getElementById('l-pass').value;
+  const u = USERS[email];
+  const err = document.getElementById('l-err');
+  if (u && u.pass === pass) {
+    err.style.display = 'none';
+    curUser = { ...u, email };
+    document.getElementById('u-name').textContent = u.name;
+    document.getElementById('u-ini').textContent = u.ini;
+    document.getElementById('login-screen').classList.add('hide');
+    document.getElementById('app').classList.add('visible');
+    loadData();
+  } else {
+    err.style.display = 'block';
+  }
+}
+
+function doLogout() {
+  curUser = null;
+  const app = document.getElementById('app');
+  app.classList.remove('visible');
+  setTimeout(() => { app.style.display = ''; }, 50);
+  document.getElementById('login-screen').classList.remove('hide');
+  closeSidebar();
+}
+
+// =============================
+// DATA LOADING
+// =============================
+async function loadData() {
+  if (SHEET_URL) {
+    try {
+      const resp = await fetch(SHEET_URL);
+      const csv = await resp.text();
+      MATS = parseCSV(csv);
+      dataFromSheet = true;
+      document.querySelector('#data-src .data-dot').classList.replace('offline','online');
+      document.querySelector('#data-src span:last-child').textContent = 'Google Sheets (live)';
+    } catch(e) {
+      console.warn('Google Sheets недоступен, используем демо-данные:', e);
+      MATS = [...DEMO_DATA];
+    }
+  } else {
+    MATS = [...DEMO_DATA];
+  }
+  actLog = [
+    {file:'Tranio Company Deck',user:'Анна К.',time:'Сегодня, 11:42',dept:'Продажи'},
+    {file:'Рынок Таиланда 2025',user:'Евгений В.',time:'Сегодня, 09:17',dept:'Маркетинг'},
+    {file:'Тизеры Кипр Q1',user:'Команда',time:'Вчера, 18:05',dept:'Общий'},
+  ];
+  renderAll();
+}
+
+function parseCSV(csv) {
+  const lines = csv.split('\n').filter(l => l.trim());
+  // Skip header row (first row after the title row)
+  const dataLines = lines.slice(2); // skip title + header
+  return dataLines.map((line, idx) => {
+    const cols = parseCSVLine(line);
+    if (cols.length < 11) return null;
+    return {
+      id: parseInt(cols[0]) || idx+1,
+      title: cols[1] || '',
+      cat: cols[2] || '',
+      subcat: cols[3] || '',
+      country: cols[4] || '',
+      type: cols[5] || 'pdf',
+      size: cols[6] || '',
+      date: cols[7] || '',
+      dl: parseInt(cols[8]) || 0,
+      isNew: (cols[9] || '').toUpperCase() === 'TRUE',
+      url: cols[10] || '',
+      ico: cols[11] || '📄',
+      desc: cols[12] || '',
+    };
+  }).filter(Boolean);
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i+1] === '"') { current += '"'; i++; }
+      else if (ch === '"') { inQuotes = false; }
+      else { current += ch; }
+    } else {
+      if (ch === '"') { inQuotes = true; }
+      else if (ch === ',') { result.push(current.trim()); current = ''; }
+      else { current += ch; }
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+// =============================
+// RENDERING
+// =============================
+const CAT_LABELS = {
+  'presentations':'Презентация', 'pres-regional':'Презентация (регион)',
+  'pres-company':'Презентация (компания)', 'email':'E-mail рассылка',
+  'messengers':'Скрипт мессенджера', 'teasers':'Тизер / Сторис',
+  'webinars':'Запись вебинара', 'analytics':'Аналитика',
+};
+const TYPE_LABELS = {pdf:'PDF',pptx:'PPTX',image:'Image',doc:'DOC',video:'Video',zip:'ZIP',html:'HTML'};
+
+function renderAll() {
+  updateCounts();
+  renderCountryFilters();
+  renderGrid();
+  updateStats();
+}
+
+function updateCounts() {
+  const cats = ['all','presentations','email','messengers','teasers','webinars','analytics'];
+  cats.forEach(c => {
+    const n = c === 'all' ? MATS.length : MATS.filter(m => matchCat(m, c)).length;
+    const el = document.getElementById('cnt-'+c);
+    if (el) el.textContent = n;
+  });
+}
+
+function matchCat(m, cat) {
+  if (cat === 'all') return true;
+  if (cat === 'presentations') return m.cat === 'presentations' || m.cat === 'pres-regional' || m.cat === 'pres-company';
+  return m.cat === cat;
+}
+
+function renderCountryFilters() {
+  const countries = [...new Set(MATS.map(m => m.country))].sort();
+  const container = document.getElementById('country-filters');
+  container.innerHTML = '<span class="filter-label">Страна:</span>' +
+    countries.map(c => {
+      const flag = COUNTRY_FLAGS[c] || '🌐';
+      const active = filt.country === c ? ' active' : '';
+      return `<button class="country-btn${active}" onclick="filterCountry('${c}',this)">${flag} ${c}</button>`;
+    }).join('');
+}
+
+function updateStats() {
+  const filtered = getFiltered();
+  document.getElementById('s-files').textContent = MATS.length;
+  document.getElementById('s-dl').textContent = MATS.reduce((s,m) => s+m.dl, 0);
+  const uniqueCats = new Set(MATS.map(m => m.cat));
+  document.getElementById('s-cats').textContent = uniqueCats.size;
+  const uniqueCountries = new Set(MATS.map(m => m.country));
+  document.getElementById('s-countries').textContent = uniqueCountries.size;
+}
+
+function getFiltered() {
+  return MATS.filter(m => {
+    if (filt.cat !== 'all' && !matchCat(m, filt.cat)) return false;
+    if (filt.type && m.type !== filt.type) return false;
+    if (filt.country && m.country !== filt.country) return false;
+    if (q) {
+      const search = q.toLowerCase();
+      const haystack = (m.title + ' ' + m.country + ' ' + (m.desc||'') + ' ' + (CAT_LABELS[m.cat]||'')).toLowerCase();
+      if (!haystack.includes(search)) return false;
+    }
+    return true;
+  });
+}
+
+function renderGrid() {
+  const g = document.getElementById('grid');
+  const items = getFiltered();
+  if (!items.length) {
+    g.innerHTML = '<div class="empty"><div class="empty-ico">&#9678;</div><div>Ничего не найдено</div><div style="font-size:12px;margin-top:6px">Попробуйте изменить фильтры</div></div>';
+    return;
+  }
+  g.innerHTML = items.map(m => {
+    const tc = `ct-${m.type === 'zip' ? 'zip' : m.type}`;
+    const bc = `b-${m.type === 'zip' ? 'zip' : m.type}`;
+    const flag = COUNTRY_FLAGS[m.country] || '🌐';
+    const catLabel = CAT_LABELS[m.cat] || m.cat;
+    const dateStr = formatDate(m.date);
+    const hasUrl = m.url && m.url !== '' && !m.url.includes('XXXX');
+
+    return `<div class="card">
+      <div class="c-thumb ${tc}">
+        ${m.isNew ? '<span class="c-new">Новое</span>' : ''}
+        <span>${m.ico}</span>
+        <span class="c-badge ${bc}">${TYPE_LABELS[m.type]||m.type}</span>
+      </div>
+      <div class="c-body">
+        <div class="c-cat">${catLabel}</div>
+        <div class="c-country">${flag} ${m.country}</div>
+        <div class="c-title">${escHtml(m.title)}</div>
+        ${m.desc ? `<div class="c-desc">${escHtml(m.desc)}</div>` : ''}
+        <div class="c-meta"><span>${m.size}</span><span>${dateStr}</span></div>
+        ${hasUrl
+          ? `<a class="btn-dl" href="${escHtml(m.url)}" target="_blank" rel="noopener" onclick="trackDl(${m.id})">&#11015; Открыть файл</a>`
+          : `<button class="btn-dl" onclick="download(${m.id},this)">&#11015; Скачать</button>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  if (d.includes('.')) return d;
+  try {
+    const dt = new Date(d);
+    const months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+    return dt.getDate() + ' ' + months[dt.getMonth()];
+  } catch(e) { return d; }
+}
+
+function escHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+function renderAct() {
+  document.getElementById('act-body').innerHTML = actLog.map(a => `
+    <tr>
+      <td><span style="color:var(--teal-bright)">&#9672;</span> ${escHtml(a.file)}</td>
+      <td>${escHtml(a.user)}</td>
+      <td style="color:var(--muted)">${a.time}</td>
+      <td><span class="tag">${a.dept}</span></td>
+    </tr>`).join('');
+}
+
+// =============================
+// ACTIONS
+// =============================
+function download(id, btn) {
+  const m = MATS.find(x => x.id === id);
+  if (!m) return;
+  m.dl++;
+  btn.textContent = '✓ Скачано';
+  btn.classList.add('done');
+  setTimeout(() => { btn.innerHTML = '&#11015; Скачать'; btn.classList.remove('done'); }, 2000);
+  trackDl(id);
+  showToast('Скачан: ' + m.title);
+}
+
+function trackDl(id) {
+  const m = MATS.find(x => x.id === id);
+  if (!m || !curUser) return;
+  actLog.unshift({ file: m.title, user: curUser.name, time: 'Только что', dept: curUser.dept });
+  updateStats();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('t-msg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// =============================
+// FILTERS
+// =============================
+function filterCat(cat, el) {
+  filt.cat = cat;
+  filt.type = null;
+  q = '';
+  document.getElementById('srch').value = '';
+  document.querySelectorAll('.s-item').forEach(e => e.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+  const info = CATEGORIES[cat] || {};
+  document.getElementById('v-title').textContent = info.label || cat;
+  showMat();
+  renderGrid();
+  closeSidebar();
+}
+
+function filterCountry(country, btn) {
+  if (filt.country === country) {
+    filt.country = null;
+    btn.classList.remove('active');
+  } else {
+    filt.country = country;
+    document.querySelectorAll('.country-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  renderGrid();
+}
+
+function filterType(type, btn) {
+  filt.type = filt.type === type ? null : type;
+  document.querySelectorAll('.filter-row .fbtn').forEach(b => b.classList.remove('active'));
+  if (filt.type) btn.classList.add('active');
+  renderGrid();
+}
+
+function resetFilters() {
+  filt = { cat: 'all', type: null, country: null };
+  q = '';
+  document.getElementById('srch').value = '';
+  document.querySelectorAll('.s-item').forEach(e => e.classList.remove('active'));
+  document.querySelector('.s-item[data-cat="all"]').classList.add('active');
+  document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.country-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('v-title').textContent = 'Все материалы';
+  renderGrid();
+}
+
+function doSearch() {
+  q = document.getElementById('srch').value.toLowerCase();
+  renderGrid();
+}
+
+// =============================
+// NAVIGATION
+// =============================
+function showMat() {
+  document.getElementById('mat-view').style.display = 'block';
+  document.getElementById('act-view').style.display = 'none';
+  closeSidebar();
+}
+function showAct() {
+  document.getElementById('mat-view').style.display = 'none';
+  document.getElementById('act-view').style.display = 'block';
+  renderAct();
+  closeSidebar();
+}
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('visible');
+  document.getElementById('ham').classList.toggle('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('visible');
+  document.getElementById('ham').classList.remove('open');
+}
+function setB(id) {
+  document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function focusSrch() {
+  showMat();
+  setTimeout(() => document.getElementById('srch').focus(), 100);
+}
+</script>
+</body>
+</html>
