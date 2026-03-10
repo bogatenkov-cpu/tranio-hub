@@ -543,9 +543,15 @@ let MATS = [];
 let curUser = null;
 let filt = { cat: 'all', type: null, country: null, brand: null, month: null };
 let q = '';
-let actLog = [];
+let actLog = JSON.parse(localStorage.getItem('tranio_hub_log') || '[]');
 let dataFromSheet = false;
 let dlCounts = JSON.parse(localStorage.getItem('tranio_hub_dl') || '{}');
+
+function saveLog() {
+  // Keep last 100 entries to avoid localStorage bloat
+  if (actLog.length > 100) actLog = actLog.slice(0, 100);
+  localStorage.setItem('tranio_hub_log', JSON.stringify(actLog));
+}
 
 // =============================
 // INIT
@@ -692,11 +698,6 @@ async function loadData() {
   } else {
     MATS = [...DEMO_DATA];
   }
-  actLog = [
-    {file:'Tranio Company Deck',user:'Анна К.',time:'Сегодня, 11:42',dept:'Продажи'},
-    {file:'Рынок Таиланда 2025',user:'Евгений В.',time:'Сегодня, 09:17',dept:'Маркетинг'},
-    {file:'Тизеры Кипр Q1',user:'Команда',time:'Вчера, 18:05',dept:'Общий'},
-  ];
   renderAll();
 }
 
@@ -933,6 +934,15 @@ function renderAct() {
 // =============================
 // ACTIONS
 // =============================
+function formatLogTime() {
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2,'0');
+  const mm = String(now.getMonth()+1).padStart(2,'0');
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mi = String(now.getMinutes()).padStart(2,'0');
+  return dd+'.'+mm+' '+hh+':'+mi;
+}
+
 function download(id, btn) {
   const m = MATS.find(x => x.id === id);
   if (!m) return;
@@ -943,7 +953,8 @@ function download(id, btn) {
   btn.classList.add('done');
   setTimeout(() => { btn.innerHTML = '&#11015; Скачать'; btn.classList.remove('done'); }, 2000);
   if (curUser) {
-    actLog.unshift({ file: m.title, user: curUser.name, time: 'Только что', dept: curUser.dept });
+    actLog.unshift({ file: m.title, user: curUser.name, time: formatLogTime(), dept: curUser.dept || '' });
+    saveLog();
   }
   updateStats();
   showToast('Скачан: ' + m.title);
@@ -956,7 +967,8 @@ function trackDl(id) {
   dlCounts[id] = m.dl;
   localStorage.setItem('tranio_hub_dl', JSON.stringify(dlCounts));
   if (curUser) {
-    actLog.unshift({ file: m.title, user: curUser.name, time: 'Только что', dept: curUser.dept });
+    actLog.unshift({ file: m.title, user: curUser.name, time: formatLogTime(), dept: curUser.dept || '' });
+    saveLog();
   }
   updateStats();
 }
