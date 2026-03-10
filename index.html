@@ -597,7 +597,7 @@ function parseCSV(csv) {
       id,
       title: c[iTitle] || '',
       cat: c[iCat] || '',
-      country: c[iCountry] || '',
+      country: (c[iCountry] === 'Tranio Capital' || c[iCountry] === 'Tranio Brokerage') ? 'Global' : (c[iCountry] || ''),
       type: c[iType] || 'pdf',
       size: c[iSize] || '',
       date: c[iDate] || '',
@@ -750,7 +750,10 @@ function renderGrid() {
     const flag = COUNTRY_FLAGS[m.country] || '🌐';
     const catLabel = CAT_LABELS[m.cat] || m.cat;
     const dateStr = formatDate(m.date);
-    const hasUrl = m.url && m.url !== '' && !m.url.includes('XXXX');
+    const urlTrimmed = (m.url || '').trim();
+    const hasUrl = urlTrimmed.length > 0 && !urlTrimmed.includes('XXXX') && (urlTrimmed.startsWith('http') || urlTrimmed.startsWith('/'));
+    const displayCountry = (m.country === 'Tranio Capital' || m.country === 'Tranio Brokerage') ? 'Global' : m.country;
+    const displayFlag = COUNTRY_FLAGS[displayCountry] || '🌐';
 
     return `<div class="card">
       <div class="c-thumb ${tc}">
@@ -760,12 +763,12 @@ function renderGrid() {
       </div>
       <div class="c-body">
         <div class="c-cat">${catLabel}</div>
-        <div class="c-country">${flag} ${m.country}</div>
+        <div class="c-country">${displayFlag} ${displayCountry}</div>
         <div class="c-title">${escHtml(m.title)}</div>
         ${m.desc ? `<div class="c-desc">${escHtml(m.desc)}</div>` : ''}
         <div class="c-meta"><span>${m.size || ''}</span><span>${m.dl ? '&#11015; '+m.dl : ''} ${dateStr}</span></div>
         ${hasUrl
-          ? `<a class="btn-dl" href="${escHtml(m.url)}" target="_blank" rel="noopener" onclick="trackDl(${m.id})">&#11015; Открыть файл</a>`
+          ? `<a class="btn-dl" href="${escHtml(urlTrimmed)}" target="_blank" rel="noopener" onclick="trackDl(${m.id})">&#11015; Открыть файл</a>`
           : `<button class="btn-dl" onclick="download(${m.id},this)">&#11015; Скачать</button>`
         }
       </div>
@@ -811,17 +814,22 @@ function download(id, btn) {
   btn.textContent = '✓ Скачано';
   btn.classList.add('done');
   setTimeout(() => { btn.innerHTML = '&#11015; Скачать'; btn.classList.remove('done'); }, 2000);
-  trackDl(id);
+  if (curUser) {
+    actLog.unshift({ file: m.title, user: curUser.name, time: 'Только что', dept: curUser.dept });
+  }
+  updateStats();
   showToast('Скачан: ' + m.title);
 }
 
 function trackDl(id) {
   const m = MATS.find(x => x.id === id);
-  if (!m || !curUser) return;
+  if (!m) return;
   m.dl++;
   dlCounts[id] = m.dl;
   localStorage.setItem('tranio_hub_dl', JSON.stringify(dlCounts));
-  actLog.unshift({ file: m.title, user: curUser.name, time: 'Только что', dept: curUser.dept });
+  if (curUser) {
+    actLog.unshift({ file: m.title, user: curUser.name, time: 'Только что', dept: curUser.dept });
+  }
   updateStats();
 }
 
