@@ -267,12 +267,19 @@ main { flex: 1; overflow-y: auto; padding: 24px 20px 40px; min-width: 0; }
 
   <div class="body-wrap">
     <aside id="sidebar">
-      <div class="s-section">Категории</div>
+      <div class="s-section">Бренд</div>
       <div class="s-item active" data-cat="all" onclick="filterCat('all',this)">
         <span class="s-ico">&#9672;</span>Все материалы<span class="s-cnt" id="cnt-all">0</span>
       </div>
+      <div class="s-item" data-brand="Tranio Capital" onclick="filterBrand('Tranio Capital',this)">
+        <span class="s-ico">&#9878;</span>Tranio Capital<span class="s-cnt" id="cnt-brand-capital">0</span>
+      </div>
+      <div class="s-item" data-brand="Tranio Brokerage" onclick="filterBrand('Tranio Brokerage',this)">
+        <span class="s-ico">&#9878;</span>Tranio Brokerage<span class="s-cnt" id="cnt-brand-brokerage">0</span>
+      </div>
 
       <div class="s-divider"></div>
+      <div class="s-section">Категории</div>
       <div class="s-item" data-cat="presentations" onclick="filterCat('presentations',this)">
         <span class="s-ico">&#9649;</span>Презентации<span class="s-cnt" id="cnt-presentations">0</span>
       </div>
@@ -416,7 +423,7 @@ const COUNTRY_FLAGS = {
   'Thailand': '🇹🇭', 'UAE': '🇦🇪', 'Cyprus': '🇨🇾', 'Indonesia': '🇮🇩',
   'Greece': '🇬🇷', 'Turkey': '🇹🇷', 'Oman': '🇴🇲', 'Saudi Arabia': '🇸🇦',
   'Montenegro': '🇲🇪', 'Spain': '🇪🇸', 'Portugal': '🇵🇹', 'Cambodia': '🇰🇭',
-  'Global': '🌍', 'Tranio Capital': '🏦',
+  'Russia': '🇷🇺', 'Global': '🌍', 'Tranio Capital': '🏦', 'Tranio Brokerage': '🏢',
 };
 
 // =============================
@@ -483,10 +490,11 @@ const DEMO_DATA = [
 // =============================
 let MATS = [];
 let curUser = null;
-let filt = { cat: 'all', type: null, country: null };
+let filt = { cat: 'all', type: null, country: null, brand: null };
 let q = '';
 let actLog = [];
 let dataFromSheet = false;
+let dlCounts = JSON.parse(localStorage.getItem('tranio_hub_dl') || '{}');
 
 // =============================
 // INIT
@@ -554,24 +562,41 @@ async function loadData() {
 
 function parseCSV(csv) {
   const lines = csv.split('\n').filter(l => l.trim());
-  // Skip header row only (ID,Название,Категория,...)
+  const header = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
   const dataLines = lines.slice(1);
+  // Find column indices by header name
+  const col = (name) => header.findIndex(h => h.includes(name));
+  const iID = col('id');
+  const iTitle = col('название') !== -1 ? col('название') : col('title');
+  const iCat = col('категория') !== -1 ? col('категория') : col('cat');
+  const iCountry = col('страна') !== -1 ? col('страна') : col('country');
+  const iType = col('тип') !== -1 ? col('тип') : col('type');
+  const iSize = col('размер') !== -1 ? col('размер') : col('size');
+  const iDate = col('дата') !== -1 ? col('дата') : col('date');
+  const iNew = col('новинка') !== -1 ? col('новинка') : col('new');
+  const iUrl = col('ссылка') !== -1 ? col('ссылка') : col('url');
+  const iIco = col('иконка') !== -1 ? col('иконка') : col('ico');
+  const iDesc = col('описание') !== -1 ? col('описание') : col('desc');
+  const iBrand = col('бренд') !== -1 ? col('бренд') : col('brand');
+
   return dataLines.map((line, idx) => {
-    const cols = parseCSVLine(line);
-    if (cols.length < 6 || !cols[1]) return null;
+    const c = parseCSVLine(line);
+    if (c.length < 4 || !(c[iTitle]||'').trim()) return null;
+    const id = parseInt(c[iID]) || idx+1;
     return {
-      id: parseInt(cols[0]) || idx+1,
-      title: cols[1] || '',
-      cat: cols[2] || '',
-      country: cols[3] || '',
-      type: cols[4] || 'pdf',
-      size: cols[5] || '',
-      date: cols[6] || '',
-      dl: parseInt(cols[7]) || 0,
-      isNew: (cols[8] || '').toUpperCase() === 'TRUE',
-      url: cols[9] || '',
-      ico: cols[10] || '📄',
-      desc: cols[11] || '',
+      id,
+      title: c[iTitle] || '',
+      cat: c[iCat] || '',
+      country: c[iCountry] || '',
+      type: c[iType] || 'pdf',
+      size: c[iSize] || '',
+      date: c[iDate] || '',
+      dl: dlCounts[id] || 0,
+      isNew: (c[iNew] || '').toUpperCase() === 'TRUE',
+      url: c[iUrl] || '',
+      ico: c[iIco] || '📄',
+      desc: c[iDesc] || '',
+      brand: iBrand >= 0 ? (c[iBrand] || '') : '',
     };
   }).filter(Boolean);
 }
@@ -621,6 +646,11 @@ function updateCounts() {
     const el = document.getElementById('cnt-'+c);
     if (el) el.textContent = n;
   });
+  // Brand counts
+  const capEl = document.getElementById('cnt-brand-capital');
+  const brkEl = document.getElementById('cnt-brand-brokerage');
+  if (capEl) capEl.textContent = MATS.filter(m => m.brand === 'Tranio Capital').length;
+  if (brkEl) brkEl.textContent = MATS.filter(m => m.brand === 'Tranio Brokerage').length;
 }
 
 function matchCat(m, cat) {
@@ -652,12 +682,13 @@ function updateStats() {
 
 function getFiltered() {
   return MATS.filter(m => {
+    if (filt.brand && m.brand !== filt.brand) return false;
     if (filt.cat !== 'all' && !matchCat(m, filt.cat)) return false;
     if (filt.type && m.type !== filt.type) return false;
     if (filt.country && m.country !== filt.country) return false;
     if (q) {
       const search = q.toLowerCase();
-      const haystack = (m.title + ' ' + m.country + ' ' + (m.desc||'') + ' ' + (CAT_LABELS[m.cat]||'')).toLowerCase();
+      const haystack = (m.title + ' ' + m.country + ' ' + (m.desc||'') + ' ' + (CAT_LABELS[m.cat]||'') + ' ' + (m.brand||'')).toLowerCase();
       if (!haystack.includes(search)) return false;
     }
     return true;
@@ -690,7 +721,7 @@ function renderGrid() {
         <div class="c-country">${flag} ${m.country}</div>
         <div class="c-title">${escHtml(m.title)}</div>
         ${m.desc ? `<div class="c-desc">${escHtml(m.desc)}</div>` : ''}
-        <div class="c-meta"><span>${m.size}</span><span>${dateStr}</span></div>
+        <div class="c-meta"><span>${m.size || ''}</span><span>${m.dl ? '&#11015; '+m.dl : ''} ${dateStr}</span></div>
         ${hasUrl
           ? `<a class="btn-dl" href="${escHtml(m.url)}" target="_blank" rel="noopener" onclick="trackDl(${m.id})">&#11015; Открыть файл</a>`
           : `<button class="btn-dl" onclick="download(${m.id},this)">&#11015; Скачать</button>`
@@ -733,6 +764,8 @@ function download(id, btn) {
   const m = MATS.find(x => x.id === id);
   if (!m) return;
   m.dl++;
+  dlCounts[id] = m.dl;
+  localStorage.setItem('tranio_hub_dl', JSON.stringify(dlCounts));
   btn.textContent = '✓ Скачано';
   btn.classList.add('done');
   setTimeout(() => { btn.innerHTML = '&#11015; Скачать'; btn.classList.remove('done'); }, 2000);
@@ -743,6 +776,9 @@ function download(id, btn) {
 function trackDl(id) {
   const m = MATS.find(x => x.id === id);
   if (!m || !curUser) return;
+  m.dl++;
+  dlCounts[id] = m.dl;
+  localStorage.setItem('tranio_hub_dl', JSON.stringify(dlCounts));
   actLog.unshift({ file: m.title, user: curUser.name, time: 'Только что', dept: curUser.dept });
   updateStats();
 }
@@ -757,8 +793,29 @@ function showToast(msg) {
 // =============================
 // FILTERS
 // =============================
+function filterBrand(brand, el) {
+  filt.brand = filt.brand === brand ? null : brand;
+  filt.cat = 'all';
+  filt.type = null;
+  q = '';
+  document.getElementById('srch').value = '';
+  document.querySelectorAll('.s-item').forEach(e => e.classList.remove('active'));
+  if (filt.brand) {
+    el.classList.add('active');
+    document.getElementById('v-title').textContent = brand;
+  } else {
+    document.querySelector('.s-item[data-cat="all"]').classList.add('active');
+    document.getElementById('v-title').textContent = 'Все материалы';
+  }
+  document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+  showMat();
+  renderGrid();
+  closeSidebar();
+}
+
 function filterCat(cat, el) {
   filt.cat = cat;
+  filt.brand = null;
   filt.type = null;
   q = '';
   document.getElementById('srch').value = '';
@@ -792,7 +849,7 @@ function filterType(type, btn) {
 }
 
 function resetFilters() {
-  filt = { cat: 'all', type: null, country: null };
+  filt = { cat: 'all', type: null, country: null, brand: null };
   q = '';
   document.getElementById('srch').value = '';
   document.querySelectorAll('.s-item').forEach(e => e.classList.remove('active'));
