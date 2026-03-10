@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Tranio Hub — MVP</title>
+<title>Tranio Hub</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%235B9BD5'/><text x='16' y='22' font-family='Arial' font-size='18' font-weight='bold' fill='white' text-anchor='middle'>T</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -371,7 +372,7 @@ main { flex: 1; overflow-y: auto; padding: 24px 24px 40px; min-width: 0; }
           <div class="stat"><div class="stat-n" id="s-files">0</div><div class="stat-l">Файлов</div></div>
           <div class="stat"><div class="stat-n" id="s-dl">0</div><div class="stat-l">Скачиваний</div></div>
           <div class="stat"><div class="stat-n" id="s-cats">0</div><div class="stat-l">Категорий</div></div>
-          <div class="stat"><div class="stat-n" id="s-countries">0</div><div class="stat-l">Стран</div></div>
+          <div class="stat"><div class="stat-n" id="s-new">0</div><div class="stat-l">Новинок</div></div>
         </div>
 
         <div class="controls">
@@ -558,17 +559,22 @@ document.getElementById('ham').onclick = toggleSidebar;
 // Check existing session on page load
 (async function checkSession() {
   try {
-    const { data: { session } } = await sb.auth.getSession();
+    const { data: { session }, error } = await sb.auth.getSession();
+    if (error) console.warn('Session error:', error.message);
     if (session) {
       enterApp(session.user);
     }
   } catch(e) { console.warn('Session check failed:', e); }
 })();
 
-// Listen for auth state changes (e.g. email confirmation redirect)
+// Listen for auth state changes (e.g. email confirmation redirect, token refresh)
 sb.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_IN' && session && !curUser) {
+  console.log('Auth event:', event);
+  if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session && !curUser) {
     enterApp(session.user);
+  }
+  if (event === 'SIGNED_OUT') {
+    curUser = null;
   }
 });
 
@@ -637,12 +643,18 @@ async function doRegister() {
 }
 
 async function doLogout() {
-  await sb.auth.signOut();
+  try { await sb.auth.signOut(); } catch(e) { console.warn('Logout error:', e); }
   curUser = null;
+  MATS = [];
   const app = document.getElementById('app');
   app.classList.remove('visible');
-  setTimeout(() => { app.style.display = ''; }, 50);
-  document.getElementById('login-screen').classList.remove('hide');
+  app.style.display = 'none';
+  setTimeout(() => { app.style.display = ''; }, 100);
+  const ls = document.getElementById('login-screen');
+  ls.classList.remove('hide');
+  ls.style.opacity = '1';
+  ls.style.transform = 'none';
+  ls.style.pointerEvents = '';
   showLogin();
   closeSidebar();
 }
@@ -824,13 +836,11 @@ function renderCountryFilters() {
 }
 
 function updateStats() {
-  const filtered = getFiltered();
   document.getElementById('s-files').textContent = MATS.length;
   document.getElementById('s-dl').textContent = MATS.reduce((s,m) => s+m.dl, 0);
   const uniqueCats = new Set(MATS.map(m => m.cat));
   document.getElementById('s-cats').textContent = uniqueCats.size;
-  const uniqueCountries = new Set(MATS.map(m => m.country));
-  document.getElementById('s-countries').textContent = uniqueCountries.size;
+  document.getElementById('s-new').textContent = MATS.filter(m => m.isNew).length;
 }
 
 function getFiltered() {
@@ -913,9 +923,9 @@ function escHtml(s) {
 function renderAct() {
   document.getElementById('act-body').innerHTML = actLog.map(a => `
     <tr>
-      <td><span style="color:var(--teal-bright)">&#9672;</span> ${escHtml(a.file)}</td>
+      <td><span style="color:var(--accent)">&#9672;</span> ${escHtml(a.file)}</td>
       <td>${escHtml(a.user)}</td>
-      <td style="color:var(--muted)">${a.time}</td>
+      <td style="color:var(--text-tertiary)">${a.time}</td>
       <td><span class="tag">${a.dept}</span></td>
     </tr>`).join('');
 }
