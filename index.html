@@ -907,7 +907,9 @@ function renderCountryFilters() {
 
 function updateStats() {
   document.getElementById('s-files').textContent = MATS.length;
-  document.getElementById('s-dl').textContent = MATS.reduce((s,m) => s+m.dl, 0);
+  // Total downloads from Supabase counts (single source of truth)
+  const totalDl = Object.values(dlCounts).reduce((s, n) => s + n, 0);
+  document.getElementById('s-dl').textContent = totalDl;
   const uniqueCats = new Set(MATS.map(m => m.cat));
   document.getElementById('s-cats').textContent = uniqueCats.size;
   document.getElementById('s-new').textContent = MATS.filter(m => m.isNew).length;
@@ -964,7 +966,7 @@ function renderGrid() {
         <div class="c-country">${displayFlag} ${displayCountry}</div>
         <div class="c-title">${escHtml(m.title)}</div>
         ${m.desc ? `<div class="c-desc">${escHtml(m.desc)}</div>` : ''}
-        <div class="c-meta"><span>${m.size || ''}</span><span>${m.dl ? '&#11015; '+m.dl : ''} ${dateStr}</span></div>
+        <div class="c-meta"><span>${m.size || ''}</span><span>${dlCounts[m.id] ? '&#11015; '+dlCounts[m.id] : ''} ${dateStr}</span></div>
         ${hasUrl
           ? `<a class="btn-dl" href="${escHtml(urlTrimmed)}" target="_blank" rel="noopener" onclick="trackDl(${m.id})">&#11015; Открыть файл</a>`
           : `<button class="btn-dl" onclick="download(${m.id},this)">&#11015; Скачать</button>`
@@ -1006,8 +1008,6 @@ function renderAct() {
 function download(id, btn) {
   const m = MATS.find(x => x.id === id);
   if (!m) return;
-  m.dl++;
-  dlCounts[id] = m.dl;
   incrementDlCount(id);
   saveLogEntry(id, m.title);
   actLog.unshift({ file: m.title, user: curUser ? curUser.name : '?', time: formatTimestamp(new Date().toISOString()), dept: '' });
@@ -1015,14 +1015,13 @@ function download(id, btn) {
   btn.classList.add('done');
   setTimeout(() => { btn.innerHTML = '&#11015; Скачать'; btn.classList.remove('done'); }, 2000);
   updateStats();
+  renderGrid();
   showToast('Скачан: ' + m.title);
 }
 
 function trackDl(id) {
   const m = MATS.find(x => x.id === id);
   if (!m) return;
-  m.dl++;
-  dlCounts[id] = m.dl;
   incrementDlCount(id);
   saveLogEntry(id, m.title);
   actLog.unshift({ file: m.title, user: curUser ? curUser.name : '?', time: formatTimestamp(new Date().toISOString()), dept: '' });
