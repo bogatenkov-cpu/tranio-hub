@@ -923,7 +923,7 @@ async function loadData() {
       MATS = parseCSV(csv);
       dataFromSheet = true;
       document.querySelector('#data-src .data-dot').classList.replace('offline','online');
-      document.querySelector('#data-src span:last-child').textContent = 'Google Sheets (live)';
+      document.querySelector('#data-src span:last-child').textContent = 'live';
     } catch(e) {
       console.warn('Google Sheets недоступен, используем демо-данные:', e);
       MATS = [...DEMO_DATA];
