@@ -273,6 +273,41 @@ main { flex: 1; overflow-y: auto; padding: 24px 24px 40px; min-width: 0; }
 .tg-folder-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: var(--text-inverse); border-radius: var(--radius-md); padding: 11px 20px; font-size: 14px; font-weight: 500; text-decoration: none; font-family: 'Golos Text', Arial, sans-serif; transition: background .2s; white-space: nowrap; }
 .tg-folder-btn:hover { background: #4E8DC5; }
 
+/* MATERIAL PROFILE MODAL */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--bg-primary); border-radius: var(--radius-xl); max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); position: relative; }
+.modal-close { position: absolute; top: 12px; right: 12px; background: var(--bg-tertiary); border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 16px; cursor: pointer; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; z-index: 1; }
+.modal-close:hover { background: var(--border); }
+.modal-thumb { height: 80px; display: flex; align-items: center; justify-content: center; font-size: 32px; border-radius: var(--radius-xl) var(--radius-xl) 0 0; }
+.modal-body { padding: 20px 24px 24px; }
+.modal-cat { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--accent-light); font-weight: 500; margin-bottom: 4px; }
+.modal-title { font-size: 20px; font-weight: 500; letter-spacing: -.3px; margin-bottom: 6px; }
+.modal-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px; }
+.modal-meta { display: flex; gap: 16px; font-size: 12px; color: var(--text-tertiary); margin-bottom: 20px; flex-wrap: wrap; }
+.modal-meta span { display: flex; align-items: center; gap: 4px; }
+.modal-section { margin-bottom: 18px; }
+.modal-section-title { font-size: 13px; font-weight: 500; color: var(--text-primary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.modal-brief { font-size: 13px; color: var(--text-secondary); line-height: 1.6; white-space: pre-line; }
+.modal-sms { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 40px 14px 14px; font-size: 13px; color: var(--text-primary); line-height: 1.5; white-space: pre-line; position: relative; }
+.modal-sms-copy { position: absolute; top: 8px; right: 8px; background: var(--accent-bg); border: 1px solid rgba(91,155,213,.2); color: var(--accent); border-radius: var(--radius-sm); padding: 4px 10px; font-size: 11px; cursor: pointer; font-family: 'Golos Text', Arial, sans-serif; }
+.modal-sms-copy:hover { background: var(--accent-bg-hover); }
+.modal-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.modal-tag { font-size: 11px; background: var(--accent-bg); color: var(--accent); padding: 3px 10px; border-radius: var(--radius-sm); font-weight: 500; }
+.modal-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+.modal-link { display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-primary); border-radius: var(--radius-md); padding: 10px 12px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: 'Golos Text', Arial, sans-serif; transition: all .15s; text-decoration: none; }
+.modal-link:hover { border-color: var(--border-hover); background: var(--bg-secondary); }
+.modal-share { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.modal-share-link { flex: 1; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 8px 12px; font-size: 12px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.modal-share-btn { background: var(--accent); color: var(--text-inverse); border: none; border-radius: var(--radius-md); padding: 8px 14px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: 'Golos Text', Arial, sans-serif; white-space: nowrap; }
+.modal-share-btn:hover { background: #4E8DC5; }
+.modal-rating { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.modal-stars { display: flex; gap: 2px; }
+.modal-star { font-size: 22px; cursor: pointer; color: var(--border); transition: color .15s; user-select: none; }
+.modal-star.filled { color: #E5A84B; }
+.modal-star:hover { color: #E5A84B; }
+.modal-rating-info { font-size: 12px; color: var(--text-tertiary); }
+
 /* POSTS */
 .posts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
 .post-card { background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px; box-shadow: var(--shadow-sm); transition: transform .2s, box-shadow .2s; display: flex; flex-direction: column; }
@@ -445,6 +480,16 @@ main { flex: 1; overflow-y: auto; padding: 24px 24px 40px; min-width: 0; }
           </div>
           <button class="fbtn" onclick="showMat()">&#8592; Назад</button>
         </div>
+        <div id="act-filters" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+          <span class="filter-label">Период:</span>
+          <button class="fbtn active" onclick="filterLog('all',this)">Все</button>
+          <button class="fbtn" onclick="filterLog('week',this)">Неделя</button>
+          <button class="fbtn" onclick="filterLog('month',this)">Месяц</button>
+          <span class="filter-label" style="margin-left:8px">Сотрудник:</span>
+          <select id="log-user-filter" onchange="renderAct()" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-md);padding:7px 12px;font-size:12px;color:var(--text-primary);font-family:'Golos Text',Arial,sans-serif;cursor:pointer">
+            <option value="">Все</option>
+          </select>
+        </div>
         <div class="act-table-wrap">
           <table class="act-table">
             <thead><tr><th>Файл</th><th>Пользователь</th><th>Время</th><th>Отдел</th></tr></thead>
@@ -600,6 +645,15 @@ main { flex: 1; overflow-y: auto; padding: 24px 24px 40px; min-width: 0; }
 
 <div id="toast"><span>&#11015;</span><span id="t-msg"></span></div>
 
+<!-- MATERIAL PROFILE MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeProfile()">
+  <div class="modal" id="modal">
+    <button class="modal-close" onclick="closeProfile()">&#10005;</button>
+    <div class="modal-thumb" id="modal-thumb"></div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 // =============================
@@ -729,6 +783,7 @@ async function loadActivityLog() {
       file: r.file_title,
       user: r.user_name,
       time: formatTimestamp(r.created_at),
+      rawDate: r.created_at,
       dept: '',
       fileId: r.file_id,
     }));
@@ -767,6 +822,67 @@ async function incrementDlCount(fileId) {
       { onConflict: 'file_id' }
     );
   } catch(e) { console.warn('DL count save failed:', e); }
+}
+
+// RATINGS
+let ratingsAvg = {};  // { material_id: { avg: 4.2, count: 5 } }
+let userRatings = {}; // { material_id: score }
+
+async function loadRatings() {
+  try {
+    // Load averages
+    const { data } = await sb.from('ratings').select('material_id, score');
+    if (data) {
+      const grouped = {};
+      data.forEach(r => {
+        if (!grouped[r.material_id]) grouped[r.material_id] = [];
+        grouped[r.material_id].push(r.score);
+      });
+      Object.keys(grouped).forEach(k => {
+        const scores = grouped[k];
+        ratingsAvg[k] = { avg: scores.reduce((a,b) => a+b, 0) / scores.length, count: scores.length };
+      });
+    }
+    // Load user's own ratings
+    if (curUser) {
+      const { data: myRatings } = await sb.from('ratings').select('material_id, score').eq('user_id', curUser.id);
+      if (myRatings) myRatings.forEach(r => { userRatings[r.material_id] = r.score; });
+    }
+  } catch(e) { console.warn('Ratings load failed:', e); }
+}
+
+async function setRating(materialId, score) {
+  if (!curUser) return;
+  userRatings[materialId] = score;
+  try {
+    await sb.from('ratings').upsert(
+      { user_id: curUser.id, material_id: materialId, score },
+      { onConflict: 'user_id,material_id' }
+    );
+    // Reload averages for this material
+    const { data } = await sb.from('ratings').select('score').eq('material_id', materialId);
+    if (data && data.length) {
+      ratingsAvg[materialId] = { avg: data.reduce((a,r) => a+r.score, 0) / data.length, count: data.length };
+    }
+    // Re-render stars in modal
+    const starsEl = document.getElementById('modal-stars');
+    if (starsEl) renderStars(starsEl, materialId);
+    showToast('Оценка сохранена');
+  } catch(e) { console.warn('Rating save failed:', e); }
+}
+
+function renderStars(container, materialId) {
+  const myScore = userRatings[materialId] || 0;
+  const info = ratingsAvg[materialId];
+  let html = '<div class="modal-stars">';
+  for (let i = 1; i <= 5; i++) {
+    html += `<span class="modal-star ${i <= myScore ? 'filled' : ''}" onclick="setRating(${materialId},${i})">&#9733;</span>`;
+  }
+  html += '</div>';
+  if (info) {
+    html += `<span class="modal-rating-info">${info.avg.toFixed(1)} / 5 (${info.count} ${info.count === 1 ? 'оценка' : 'оценок'})</span>`;
+  }
+  container.innerHTML = html;
 }
 
 function formatTimestamp(iso) {
@@ -932,10 +1048,11 @@ async function loadData() {
     MATS = [...DEMO_DATA];
   }
   // Load dl counts & activity log from Supabase
-  await Promise.all([loadDlCounts(), loadActivityLog()]);
+  await Promise.all([loadDlCounts(), loadActivityLog(), loadRatings()]);
   // Apply dl counts to materials
   MATS.forEach(m => { if (dlCounts[m.id]) m.dl = dlCounts[m.id]; });
   renderAll();
+  checkHash();
 }
 
 function parseCSV(csv) {
@@ -956,6 +1073,11 @@ function parseCSV(csv) {
   const iIco = col('иконка') !== -1 ? col('иконка') : col('ico');
   const iDesc = col('описание') !== -1 ? col('описание') : col('desc');
   const iBrand = col('бренд') !== -1 ? col('бренд') : col('brand');
+  const iBrief = col('brief') !== -1 ? col('brief') : col('бриф');
+  const iSms = col('sms') !== -1 ? col('sms') : col('шаблон');
+  const iTags = col('tags') !== -1 ? col('tags') : col('теги');
+  const iUrlTeaser = col('url_teaser') !== -1 ? col('url_teaser') : col('тизер_ссылка');
+  const iUrlOnepage = col('url_onepage') !== -1 ? col('url_onepage') : col('onepage_ссылка');
 
   return dataLines.map((line, idx) => {
     const c = parseCSVLine(line);
@@ -975,6 +1097,11 @@ function parseCSV(csv) {
       ico: c[iIco] || '📄',
       desc: c[iDesc] || '',
       brand: iBrand >= 0 ? (c[iBrand] || '') : '',
+      brief: iBrief >= 0 ? (c[iBrief] || '') : '',
+      sms: iSms >= 0 ? (c[iSms] || '') : '',
+      tags: iTags >= 0 ? (c[iTags] || '').split(';').map(t => t.trim()).filter(Boolean) : [],
+      urlTeaser: iUrlTeaser >= 0 ? (c[iUrlTeaser] || '') : '',
+      urlOnepage: iUrlOnepage >= 0 ? (c[iUrlOnepage] || '') : '',
     };
   }).filter(Boolean);
 }
@@ -1098,7 +1225,7 @@ function getFiltered() {
     }
     if (q) {
       const search = q.toLowerCase();
-      const haystack = (m.title + ' ' + m.country + ' ' + (m.desc||'') + ' ' + (CAT_LABELS[m.cat]||'') + ' ' + (m.brand||'')).toLowerCase();
+      const haystack = (m.title + ' ' + m.country + ' ' + (m.desc||'') + ' ' + (CAT_LABELS[m.cat]||'') + ' ' + (m.brand||'') + ' ' + (m.tags||[]).join(' ')).toLowerCase();
       if (!haystack.includes(search)) return false;
     }
     return true;
@@ -1123,7 +1250,10 @@ function renderGrid() {
     const displayCountry = (m.country === 'Tranio Capital' || m.country === 'Tranio Brokerage') ? 'Global' : m.country;
     const displayFlag = COUNTRY_FLAGS[displayCountry] || '🌐';
 
-    return `<div class="card">
+    const hasProfile = m.brief || m.sms || (m.tags && m.tags.length) || m.urlTeaser || m.urlOnepage;
+    const tagsHtml = (m.tags && m.tags.length) ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">${m.tags.map(t => `<span class="tag">${escHtml(t)}</span>`).join('')}</div>` : '';
+
+    return `<div class="card" onclick="openProfile(${m.id})" data-id="${m.id}">
       <div class="c-thumb ${tc}">
         ${m.isNew ? '<span class="c-new">Новое</span>' : ''}
         <span>${m.ico}</span>
@@ -1134,10 +1264,11 @@ function renderGrid() {
         <div class="c-country">${displayFlag} ${displayCountry}</div>
         <div class="c-title">${escHtml(m.title)}</div>
         ${m.desc ? `<div class="c-desc">${escHtml(m.desc)}</div>` : ''}
+        ${tagsHtml}
         <div class="c-meta"><span>${m.size || ''}</span><span>${dlCounts[m.id] ? '&#11015; '+dlCounts[m.id] : ''} ${dateStr}</span></div>
         ${hasUrl
-          ? `<a class="btn-dl" href="${escHtml(urlTrimmed)}" target="_blank" rel="noopener" onclick="trackDl(${m.id})">&#11015; Открыть файл</a>`
-          : `<button class="btn-dl" onclick="download(${m.id},this)">&#11015; Скачать</button>`
+          ? `<a class="btn-dl" href="${escHtml(urlTrimmed)}" target="_blank" rel="noopener" onclick="event.stopPropagation();trackDl(${m.id})">&#11015; Открыть файл</a>`
+          : `<button class="btn-dl" onclick="event.stopPropagation();download(${m.id},this)">&#11015; Скачать</button>`
         }
       </div>
     </div>`;
@@ -1160,14 +1291,49 @@ function escHtml(s) {
   return div.innerHTML;
 }
 
+let logPeriod = 'all';
+
+function filterLog(period, btn) {
+  logPeriod = period;
+  document.querySelectorAll('#act-filters .fbtn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderAct();
+}
+
 function renderAct() {
-  document.getElementById('act-body').innerHTML = actLog.map(a => `
+  // Populate user filter dropdown
+  const userSelect = document.getElementById('log-user-filter');
+  const users = [...new Set(actLog.map(a => a.user))].sort();
+  const currentVal = userSelect.value;
+  userSelect.innerHTML = '<option value="">Все</option>' + users.map(u => `<option value="${escHtml(u)}">${escHtml(u)}</option>`).join('');
+  userSelect.value = currentVal;
+
+  const now = new Date();
+  const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+  const monthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
+  const selectedUser = userSelect.value;
+
+  const filtered = actLog.filter(a => {
+    // Period filter
+    if (logPeriod !== 'all' && a.rawDate) {
+      const d = new Date(a.rawDate);
+      if (logPeriod === 'week' && d < weekAgo) return false;
+      if (logPeriod === 'month' && d < monthAgo) return false;
+    }
+    // User filter
+    if (selectedUser && a.user !== selectedUser) return false;
+    return true;
+  });
+
+  document.getElementById('act-body').innerHTML = filtered.length
+    ? filtered.map(a => `
     <tr>
       <td><span style="color:var(--accent)">&#9672;</span> ${escHtml(a.file)}</td>
       <td>${escHtml(a.user)}</td>
       <td style="color:var(--text-tertiary)">${a.time}</td>
       <td><span class="tag">${a.dept}</span></td>
-    </tr>`).join('');
+    </tr>`).join('')
+    : '<tr><td colspan="4" style="text-align:center;color:var(--text-tertiary);padding:24px">Нет записей за выбранный период</td></tr>';
 }
 
 // =============================
@@ -1178,7 +1344,7 @@ function download(id, btn) {
   if (!m) return;
   incrementDlCount(id);
   saveLogEntry(id, m.title);
-  actLog.unshift({ file: m.title, user: curUser ? curUser.name : '?', time: formatTimestamp(new Date().toISOString()), dept: '' });
+  actLog.unshift({ file: m.title, user: curUser ? curUser.name : '?', time: formatTimestamp(new Date().toISOString()), rawDate: new Date().toISOString(), dept: '' });
   btn.textContent = '✓ Скачано';
   btn.classList.add('done');
   setTimeout(() => { btn.innerHTML = '&#11015; Скачать'; btn.classList.remove('done'); }, 2000);
@@ -1187,12 +1353,119 @@ function download(id, btn) {
   showToast('Скачан: ' + m.title);
 }
 
+// =============================
+// MATERIAL PROFILE
+// =============================
+function openProfile(id) {
+  const m = MATS.find(x => x.id === id);
+  if (!m) return;
+  const tc = `ct-${m.type === 'zip' ? 'zip' : m.type}`;
+  const flag = COUNTRY_FLAGS[m.country] || '🌐';
+  const catLabel = CAT_LABELS[m.cat] || m.cat;
+  const dateStr = formatDate(m.date);
+  const urlTrimmed = (m.url || '').trim();
+  const hasUrl = urlTrimmed.length > 0 && !urlTrimmed.includes('XXXX') && (urlTrimmed.startsWith('http') || urlTrimmed.startsWith('/'));
+
+  document.getElementById('modal-thumb').className = 'modal-thumb ' + tc;
+  document.getElementById('modal-thumb').innerHTML = `<span>${m.ico}</span>`;
+
+  let html = `<div class="modal-cat">${catLabel}</div>`;
+  html += `<div class="modal-title">${escHtml(m.title)}</div>`;
+  if (m.desc) html += `<div class="modal-desc">${escHtml(m.desc)}</div>`;
+
+  // Tags
+  if (m.tags && m.tags.length) {
+    html += `<div class="modal-tags">${m.tags.map(t => `<span class="modal-tag">${escHtml(t)}</span>`).join('')}</div>`;
+  }
+
+  // Meta
+  html += `<div class="modal-meta">`;
+  html += `<span>${flag} ${m.country}</span>`;
+  if (m.size) html += `<span>${m.size}</span>`;
+  if (dateStr) html += `<span>${dateStr}</span>`;
+  if (dlCounts[m.id]) html += `<span>&#11015; ${dlCounts[m.id]} скачиваний</span>`;
+  html += `</div>`;
+
+  // Rating
+  html += `<div class="modal-rating" id="modal-stars"></div>`;
+
+  // Brief
+  if (m.brief) {
+    html += `<div class="modal-section">`;
+    html += `<div class="modal-section-title">&#128203; Бриф для сейлзов</div>`;
+    html += `<div class="modal-brief">${escHtml(m.brief)}</div>`;
+    html += `</div>`;
+  }
+
+  // SMS template
+  if (m.sms) {
+    html += `<div class="modal-section">`;
+    html += `<div class="modal-section-title">&#128172; Шаблон сообщения</div>`;
+    html += `<div class="modal-sms"><button class="modal-sms-copy" onclick="copySms(${m.id})">Копировать</button>${escHtml(m.sms)}</div>`;
+    html += `</div>`;
+  }
+
+  // Download buttons
+  html += `<div class="modal-btns">`;
+  if (hasUrl) {
+    html += `<a class="btn-dl" href="${escHtml(urlTrimmed)}" target="_blank" rel="noopener" onclick="trackDl(${m.id})">&#11015; Скачать полную версию</a>`;
+  } else {
+    html += `<button class="btn-dl" onclick="download(${m.id},this)">&#11015; Скачать</button>`;
+  }
+  if (m.urlTeaser) {
+    html += `<a class="modal-link" href="${escHtml(m.urlTeaser)}" target="_blank" rel="noopener" onclick="trackDl(${m.id})">&#128196; Скачать тизер</a>`;
+  }
+  if (m.urlOnepage) {
+    html += `<a class="modal-link" href="${escHtml(m.urlOnepage)}" target="_blank" rel="noopener" onclick="trackDl(${m.id})">&#128203; Скачать 1-page</a>`;
+  }
+  html += `</div>`;
+
+  // Share link
+  const shareUrl = location.origin + location.pathname + '#m-' + m.id;
+  html += `<div class="modal-share">`;
+  html += `<div class="modal-share-link">${shareUrl}</div>`;
+  html += `<button class="modal-share-btn" onclick="copyLink(${m.id})">Копировать ссылку</button>`;
+  html += `</div>`;
+
+  document.getElementById('modal-body').innerHTML = html;
+  renderStars(document.getElementById('modal-stars'), m.id);
+  document.getElementById('modal-overlay').classList.add('open');
+  history.replaceState(null, '', '#m-' + m.id);
+}
+
+function closeProfile() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  history.replaceState(null, '', location.pathname);
+}
+
+function copySms(id) {
+  const m = MATS.find(x => x.id === id);
+  if (m && m.sms) {
+    navigator.clipboard.writeText(m.sms).then(() => showToast('Шаблон скопирован'));
+  }
+}
+
+function copyLink(id) {
+  const url = location.origin + location.pathname + '#m-' + id;
+  navigator.clipboard.writeText(url).then(() => showToast('Ссылка скопирована'));
+}
+
+function checkHash() {
+  const h = location.hash;
+  if (h && h.startsWith('#m-')) {
+    const id = parseInt(h.slice(3));
+    if (id) openProfile(id);
+  }
+}
+window.addEventListener('hashchange', checkHash);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProfile(); });
+
 function trackDl(id) {
   const m = MATS.find(x => x.id === id);
   if (!m) return;
   incrementDlCount(id);
   saveLogEntry(id, m.title);
-  actLog.unshift({ file: m.title, user: curUser ? curUser.name : '?', time: formatTimestamp(new Date().toISOString()), dept: '' });
+  actLog.unshift({ file: m.title, user: curUser ? curUser.name : '?', time: formatTimestamp(new Date().toISOString()), rawDate: new Date().toISOString(), dept: '' });
   updateStats();
 }
 
