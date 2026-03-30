@@ -472,6 +472,12 @@ main { flex: 1; overflow-y: auto; padding: 24px 24px 40px; min-width: 0; }
           <div class="filter-row" id="tag-filters" style="display:none">
             <span class="filter-label">Теги:</span>
           </div>
+          <div class="filter-row" id="rating-filters" style="display:none">
+            <span class="filter-label">Рейтинг:</span>
+            <button class="fbtn" onclick="filterRating(4,this)">★ 4+</button>
+            <button class="fbtn" onclick="filterRating(3,this)">★ 3+</button>
+            <button class="fbtn" onclick="filterRating(1,this)">С оценками</button>
+          </div>
         </div>
         <div class="grid" id="grid">
           <div class="loading"><div class="spinner"></div><div style="color:var(--muted)">Загрузка материалов...</div></div>
@@ -498,7 +504,7 @@ main { flex: 1; overflow-y: auto; padding: 24px 24px 40px; min-width: 0; }
         </div>
         <div class="act-table-wrap">
           <table class="act-table">
-            <thead><tr><th>Файл</th><th>Пользователь</th><th>Время</th><th>Отдел</th></tr></thead>
+            <thead><tr><th>Файл</th><th>Пользователь</th><th>Время</th><th>Действие</th><th>Рейтинг</th></tr></thead>
             <tbody id="act-body"></tbody>
           </table>
         </div>
@@ -771,7 +777,7 @@ let MATS = [];
 let curUser = null;
 const ADMINS = ['bogatenkov', 'skorykh'];
 function isAdmin() { return curUser && ADMINS.some(a => curUser.email && curUser.email.split('@')[0].toLowerCase() === a); }
-let filt = { cat: 'all', type: null, country: null, brand: null, month: null, tag: null };
+let filt = { cat: 'all', type: null, country: null, brand: null, month: null, tag: null, minRating: null };
 let q = '';
 let actLog = [];
 let dataFromSheet = false;
@@ -792,13 +798,13 @@ async function loadActivityLog() {
       user: r.user_name,
       time: formatTimestamp(r.created_at),
       rawDate: r.created_at,
-      dept: '',
+      dept: r.action || 'download',
       fileId: r.file_id,
     }));
   } catch(e) { console.warn('Log load failed:', e); }
 }
 
-async function saveLogEntry(fileId, fileTitle) {
+async function saveLogEntry(fileId, fileTitle, action) {
   if (!curUser) return;
   try {
     await sb.from('activity_log').insert({
@@ -806,7 +812,7 @@ async function saveLogEntry(fileId, fileTitle) {
       user_name: curUser.name,
       file_id: fileId,
       file_title: fileTitle,
-      action: 'download',
+      action: action || 'download',
     });
   } catch(e) { console.warn('Log save failed:', e); }
 }
@@ -875,6 +881,12 @@ async function setRating(materialId, score) {
     // Re-render stars in modal
     const starsEl = document.getElementById('modal-stars');
     if (starsEl) renderStars(starsEl, materialId);
+    // Log rating
+    const rm = MATS.find(x => x.id === materialId);
+    if (rm) {
+      saveLogEntry(materialId, rm.title + ' → ' + score + '★', 'rating');
+      actLog.unshift({ file: rm.title + ' → ' + score + '★', user: curUser.name, time: formatTimestamp(new Date().toISOString()), rawDate: new Date().toISOString(), dept: 'rating', fileId: materialId });
+    }
     showToast('Оценка сохранена');
   } catch(e) { console.warn('Rating save failed:', e); }
 }
@@ -1178,6 +1190,7 @@ function renderAll() {
   renderCountryFilters();
   renderMonthFilters();
   renderTagFilters();
+  document.getElementById('rating-filters').style.display = Object.keys(ratingsAvg).length ? '' : 'none';
   renderGrid();
   updateStats();
 }
@@ -1262,6 +1275,18 @@ function filterTag(tag, btn) {
   renderGrid();
 }
 
+function filterRating(min, btn) {
+  if (filt.minRating === min) {
+    filt.minRating = null;
+    btn.classList.remove('active');
+  } else {
+    filt.minRating = min;
+    document.querySelectorAll('#rating-filters .fbtn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  renderGrid();
+}
+
 function updateStats() {
   document.getElementById('s-files').textContent = MATS.length;
   // Total downloads from Supabase counts (single source of truth)
@@ -1279,6 +1304,10 @@ function getFiltered() {
     if (filt.type && m.type !== filt.type) return false;
     if (filt.country && m.country !== filt.country) return false;
     if (filt.tag && (!m.tags || !m.tags.includes(filt.tag))) return false;
+    if (filt.minRating) {
+      const r = ratingsAvg[m.id];
+      if (!r || r.avg < filt.minRating) return false;
+    }
     if (filt.month && m.date) {
       try {
         const d = new Date(m.date);
@@ -1396,15 +1425,22 @@ function renderAct() {
     return true;
   });
 
+  const ACTION_LABELS = { download: 'Скачивание', teaser: 'Тизер', onepage: '1-page', copy_sms: 'SMS скопирован', rating: 'Оценка' };
+  const ACTION_COLORS = { download: 'var(--accent)', teaser: '#E5A84B', onepage: '#8C50B4', copy_sms: '#34B78F', rating: '#E5A84B' };
+
   document.getElementById('act-body').innerHTML = filtered.length
-    ? filtered.map(a => `
-    <tr>
+    ? filtered.map(a => {
+      const actionLabel = ACTION_LABELS[a.dept] || a.dept || 'Скачивание';
+      const actionColor = ACTION_COLORS[a.dept] || 'var(--accent)';
+      const ratingInfo = a.fileId && ratingsAvg[a.fileId] ? `${ratingsAvg[a.fileId].avg.toFixed(1)} ★` : '';
+      return `<tr>
       <td><span style="color:var(--accent)">&#9672;</span> ${escHtml(a.file)}</td>
       <td>${escHtml(a.user)}</td>
       <td style="color:var(--text-tertiary)">${a.time}</td>
-      <td><span class="tag">${a.dept}</span></td>
-    </tr>`).join('')
-    : '<tr><td colspan="4" style="text-align:center;color:var(--text-tertiary);padding:24px">Нет записей за выбранный период</td></tr>';
+      <td><span class="tag" style="background:${actionColor}15;color:${actionColor}">${actionLabel}</span></td>
+      <td style="color:var(--text-tertiary);font-size:11px">${ratingInfo}</td>
+    </tr>`;}).join('')
+    : '<tr><td colspan="5" style="text-align:center;color:var(--text-tertiary);padding:24px">Нет записей за выбранный период</td></tr>';
 }
 
 // =============================
@@ -1414,8 +1450,8 @@ function download(id, btn) {
   const m = MATS.find(x => x.id === id);
   if (!m) return;
   incrementDlCount(id);
-  saveLogEntry(id, m.title);
-  actLog.unshift({ file: m.title, user: curUser ? curUser.name : '?', time: formatTimestamp(new Date().toISOString()), rawDate: new Date().toISOString(), dept: '' });
+  saveLogEntry(id, m.title, 'download');
+  actLog.unshift({ file: m.title, user: curUser ? curUser.name : '?', time: formatTimestamp(new Date().toISOString()), rawDate: new Date().toISOString(), dept: 'download' });
   btn.textContent = '✓ Скачано';
   btn.classList.add('done');
   setTimeout(() => { btn.innerHTML = '&#11015; Скачать'; btn.classList.remove('done'); }, 2000);
@@ -1493,10 +1529,10 @@ function openProfile(id) {
     html += `<button class="btn-dl" onclick="download(${m.id},this)">&#11015; Скачать</button>`;
   }
   if (m.urlTeaser) {
-    html += `<a class="modal-link" href="${escHtml(m.urlTeaser)}" target="_blank" rel="noopener" onclick="trackDl(${m.id})">&#128196; Скачать тизер</a>`;
+    html += `<a class="modal-link" href="${escHtml(m.urlTeaser)}" target="_blank" rel="noopener" onclick="trackDl(${m.id},'teaser')">&#128196; Скачать тизер</a>`;
   }
   if (m.urlOnepage) {
-    html += `<a class="modal-link" href="${escHtml(m.urlOnepage)}" target="_blank" rel="noopener" onclick="trackDl(${m.id})">&#128203; Скачать 1-page</a>`;
+    html += `<a class="modal-link" href="${escHtml(m.urlOnepage)}" target="_blank" rel="noopener" onclick="trackDl(${m.id},'onepage')">&#128203; Скачать 1-page</a>`;
   }
   html += `</div>`;
 
@@ -1521,7 +1557,11 @@ function closeProfile() {
 function copySms(id) {
   const m = MATS.find(x => x.id === id);
   if (m && m.sms) {
-    navigator.clipboard.writeText(m.sms).then(() => showToast('Шаблон скопирован'));
+    navigator.clipboard.writeText(m.sms).then(() => {
+      showToast('Шаблон скопирован');
+      saveLogEntry(id, m.title, 'copy_sms');
+      actLog.unshift({ file: m.title + ' (SMS)', user: curUser ? curUser.name : '?', time: formatTimestamp(new Date().toISOString()), rawDate: new Date().toISOString(), dept: 'copy_sms' });
+    });
   }
 }
 
@@ -1540,12 +1580,14 @@ function checkHash() {
 window.addEventListener('hashchange', checkHash);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProfile(); });
 
-function trackDl(id) {
+function trackDl(id, type) {
   const m = MATS.find(x => x.id === id);
   if (!m) return;
+  const action = type || 'download';
+  const label = type ? m.title + ' (' + type + ')' : m.title;
   incrementDlCount(id);
-  saveLogEntry(id, m.title);
-  actLog.unshift({ file: m.title, user: curUser ? curUser.name : '?', time: formatTimestamp(new Date().toISOString()), rawDate: new Date().toISOString(), dept: '' });
+  saveLogEntry(id, m.title, action);
+  actLog.unshift({ file: label, user: curUser ? curUser.name : '?', time: formatTimestamp(new Date().toISOString()), rawDate: new Date().toISOString(), dept: action });
   updateStats();
 }
 
@@ -1627,7 +1669,7 @@ function filterType(type, btn) {
 }
 
 function resetFilters() {
-  filt = { cat: 'all', type: null, country: null, brand: null, month: null, tag: null };
+  filt = { cat: 'all', type: null, country: null, brand: null, month: null, tag: null, minRating: null };
   q = '';
   document.getElementById('srch').value = '';
   document.querySelectorAll('.s-item').forEach(e => e.classList.remove('active'));
