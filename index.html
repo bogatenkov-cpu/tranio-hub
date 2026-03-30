@@ -1066,8 +1066,31 @@ async function loadData() {
   checkHash();
 }
 
+function splitCSVRows(csv) {
+  const rows = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < csv.length; i++) {
+    const ch = csv[i];
+    if (inQuotes) {
+      if (ch === '"' && csv[i+1] === '"') { current += '""'; i++; }
+      else if (ch === '"') { inQuotes = false; current += ch; }
+      else { current += ch; }
+    } else {
+      if (ch === '"') { inQuotes = true; current += ch; }
+      else if (ch === '\n' || (ch === '\r' && csv[i+1] === '\n')) {
+        if (current.trim()) rows.push(current);
+        current = '';
+        if (ch === '\r') i++;
+      } else { current += ch; }
+    }
+  }
+  if (current.trim()) rows.push(current);
+  return rows;
+}
+
 function parseCSV(csv) {
-  const lines = csv.split('\n').filter(l => l.trim());
+  const lines = splitCSVRows(csv);
   const header = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
   const dataLines = lines.slice(1);
   // Find column indices by header name
