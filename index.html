@@ -422,7 +422,7 @@ main { flex: 1; overflow-y: auto; padding: 24px 24px 40px; min-width: 0; }
 
       <div class="s-divider"></div>
       <div class="s-item" onclick="showTg()"><span class="s-ico">&#9993;</span>Telegram-каналы</div>
-      <div class="s-item" onclick="showAct()"><span class="s-ico">&#9681;</span>Лог скачиваний</div>
+      <div class="s-item admin-only" onclick="showAct()" style="display:none"><span class="s-ico">&#9681;</span>Лог скачиваний</div>
 
       <div class="data-src" id="data-src">
         <span class="data-dot offline"></span> <span>Локальные данные</span>
@@ -637,7 +637,7 @@ main { flex: 1; overflow-y: auto; padding: 24px 24px 40px; min-width: 0; }
     <div class="bnav-inner">
       <button class="bnav-btn active" id="bn-mat" onclick="showMat();setB('bn-mat')"><span class="bnav-ico">&#9672;</span>Файлы</button>
       <button class="bnav-btn" id="bn-tg" onclick="showTg();setB('bn-tg')"><span class="bnav-ico">&#9993;</span>Telegram</button>
-      <button class="bnav-btn" id="bn-act" onclick="showAct();setB('bn-act')"><span class="bnav-ico">&#9681;</span>Лог</button>
+      <button class="bnav-btn admin-only" id="bn-act" onclick="showAct();setB('bn-act')" style="display:none"><span class="bnav-ico">&#9681;</span>Лог</button>
       <button class="bnav-btn" onclick="doLogout()"><span class="bnav-ico">&#8677;</span>Выйти</button>
     </div>
   </nav>
@@ -763,6 +763,8 @@ const DEMO_DATA = [
 // =============================
 let MATS = [];
 let curUser = null;
+const ADMINS = ['bogatenkov', 'skorykh'];
+function isAdmin() { return curUser && ADMINS.some(a => curUser.email && curUser.email.split('@')[0].toLowerCase() === a); }
 let filt = { cat: 'all', type: null, country: null, brand: null, month: null };
 let q = '';
 let actLog = [];
@@ -939,11 +941,15 @@ function enterApp(user) {
   const meta = user.user_metadata || {};
   const name = meta.name || user.email.split('@')[0];
   const ini = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2) || '??';
-  curUser = { email: user.email, name, ini, dept: meta.dept || '' };
+  curUser = { id: user.id, email: user.email, name, ini, dept: meta.dept || '' };
   document.getElementById('u-name').textContent = name;
   document.getElementById('u-ini').textContent = ini;
   document.getElementById('login-screen').classList.add('hide');
   document.getElementById('app').classList.add('visible');
+  // Show admin elements
+  if (isAdmin()) {
+    document.querySelectorAll('.admin-only').forEach(el => el.style.display = '');
+  }
   loadData();
 }
 
@@ -1577,6 +1583,7 @@ function showMat() {
   closeSidebar();
 }
 function showAct() {
+  if (!isAdmin()) return;
   hideAllViews();
   document.getElementById('act-view').style.display = 'block';
   renderAct();
