@@ -964,12 +964,25 @@ document.getElementById('np-btn').onclick = doNewPass;
 document.getElementById('np-pass').addEventListener('keydown', e => { if(e.key==='Enter') doNewPass(); });
 document.getElementById('ham').onclick = toggleSidebar;
 
+// Detect password recovery flow synchronously from URL before any auth call.
+// Supabase puts recovery params in the URL hash (e.g. #access_token=...&type=recovery).
+// We must know this BEFORE checkSession() runs, otherwise enterApp() fires first
+// and the new-password screen gets stuck behind the app overlay.
+let isPasswordRecovery = (function detectRecovery() {
+  const hash = window.location.hash || '';
+  const search = window.location.search || '';
+  return /[#?&]type=recovery/.test(hash) || /[?&]type=recovery/.test(search);
+})();
+
 // Check existing session on page load
 (async function checkSession() {
   try {
     const { data: { session }, error } = await sb.auth.getSession();
     if (error) console.warn('Session error:', error.message);
-    if (session) {
+    if (session && isPasswordRecovery) {
+      // Recovery link → skip entering app, show new-password screen instead
+      showNewPass();
+    } else if (session) {
       enterApp(session.user);
     }
   } catch(e) { console.warn('Session check failed:', e); }
@@ -981,14 +994,17 @@ sb.auth.onAuthStateChange((event, session) => {
   // When user clicks the password recovery link in email, Supabase fires PASSWORD_RECOVERY
   // and creates a temporary session. Show the "set new password" screen instead of entering app.
   if (event === 'PASSWORD_RECOVERY') {
+    isPasswordRecovery = true;
     showNewPass();
     return;
   }
-  if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session && !curUser) {
+  // While in recovery flow, don't auto-enter the app on SIGNED_IN / TOKEN_REFRESHED
+  if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session && !curUser && !isPasswordRecovery) {
     enterApp(session.user);
   }
   if (event === 'SIGNED_OUT') {
     curUser = null;
+    isPasswordRecovery = false;
   }
 });
 
@@ -1146,6 +1162,12 @@ async function doNewPass() {
   try {
     const { data, error } = await sb.auth.updateUser({ password: pass });
     if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
+    // Recovery flow finished — drop the flag and clean the recovery tokens from the URL,
+    // so a page refresh doesn't put us back into the new-password screen.
+    isPasswordRecovery = false;
+    if (window.location.hash || window.location.search.includes('type=recovery')) {
+      history.replaceState(null, '', window.location.pathname);
+    }
     // Password updated — drop into app (session is already active from recovery link)
     if (data && data.user) {
       enterApp(data.user);
