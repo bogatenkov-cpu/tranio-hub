@@ -1018,7 +1018,13 @@ function enterApp(user) {
   curUser = { id: user.id, email: user.email, name, ini, dept: meta.dept || '' };
   document.getElementById('u-name').textContent = name;
   document.getElementById('u-ini').textContent = ini;
-  document.getElementById('login-screen').classList.add('hide');
+  // Clear any inline styles set by showNewPass() — otherwise they would override
+  // the .hide class and the login screen would stay visible on top of the app.
+  const ls = document.getElementById('login-screen');
+  ls.style.opacity = '';
+  ls.style.transform = '';
+  ls.style.pointerEvents = '';
+  ls.classList.add('hide');
   document.getElementById('app').classList.add('visible');
   // Show admin elements
   if (isAdmin()) {
@@ -1171,8 +1177,12 @@ async function doNewPass() {
     // Password updated — drop into app (session is already active from recovery link)
     if (data && data.user) {
       enterApp(data.user);
+      showToast('Пароль обновлён');
     } else {
-      showLogin();
+      // Defensive fallback: no user in response → re-fetch session and try again
+      const { data: { session: s2 } } = await sb.auth.getSession();
+      if (s2 && s2.user) { enterApp(s2.user); showToast('Пароль обновлён'); }
+      else { showLogin(); }
     }
   } catch(e) {
     err.textContent = 'Ошибка подключения'; err.style.display = 'block';
