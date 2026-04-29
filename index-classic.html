@@ -1,0 +1,1938 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Tranio Hub</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%235B9BD5'/><text x='16' y='22' font-family='Arial' font-size='18' font-weight='bold' fill='white' text-anchor='middle'>T</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F5F8FB;
+  --bg-tertiary: #EFF4F8;
+  --text-primary: #2D3136;
+  --text-secondary: #6B7280;
+  --text-tertiary: #9CA3AF;
+  --text-inverse: #FFFFFF;
+  --accent: #5B9BD5;
+  --accent-light: #86AED1;
+  --accent-bg: #DFEAF1;
+  --accent-bg-hover: #D0E0EC;
+  --success: #34B78F;
+  --warning: #E5A84B;
+  --error: #DC5B5B;
+  --border: #E5E7EB;
+  --border-hover: #D1D5DB;
+  --border-focus: #5B9BD5;
+  --divider: #F0F0F0;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.10);
+  --sidebar-w: 240px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: 'Golos Text', Arial, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* LOGIN */
+#login-screen {
+  position: fixed; inset: 0;
+  background: var(--bg-secondary);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200; padding: 20px;
+  transition: opacity .4s, transform .4s;
+}
+#login-screen.hide { opacity: 0; transform: translateY(-16px); pointer-events: none; }
+
+.login-card {
+  background: var(--bg-primary); border: 1px solid var(--border);
+  border-radius: var(--radius-xl); padding: 40px 32px;
+  width: 100%; max-width: 380px;
+  box-shadow: var(--shadow-lg);
+  position: relative; overflow: hidden;
+}
+.login-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+.login-logo { font-size: 20px; font-weight: 600; letter-spacing: -.5px; color: var(--text-primary); margin-bottom: 6px; }
+.login-logo span { color: var(--accent); }
+.login-sub { font-size: 13px; color: var(--text-secondary); margin-bottom: 28px; line-height: 1.4; }
+label.fl { display: block; font-size: 11px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+.fi { width: 100%; background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px 14px; color: var(--text-primary); font-family: 'Golos Text', Arial, sans-serif; font-size: 14px; outline: none; transition: border-color .2s, box-shadow .2s; margin-bottom: 16px; -webkit-appearance: none; }
+.fi:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(91,155,213,0.12); }
+.fi::placeholder { color: var(--text-tertiary); }
+.btn-login { width: 100%; background: var(--accent); color: var(--text-inverse); border: none; border-radius: var(--radius-md); padding: 13px; font-family: 'Golos Text', Arial, sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: background .2s, transform .1s; -webkit-appearance: none; }
+.btn-login:hover { background: #4E8DC5; }
+.btn-login:active { transform: scale(.98); }
+.login-hint { margin-top: 14px; font-size: 12px; color: var(--text-tertiary); text-align: center; }
+.login-hint a, .login-hint[onclick], .login-hint[style*="cursor"] { color: var(--accent); text-decoration: none; }
+.login-error { font-size: 12px; color: var(--error); margin-top: -10px; margin-bottom: 14px; display: none; }
+
+/* APP */
+#app { display: none; }
+#app.visible { display: flex; flex-direction: column; min-height: 100dvh; animation: fadeUp .4s ease; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+/* HEADER */
+header { display: flex; align-items: center; justify-content: space-between; padding: 0 20px; height: 60px; flex-shrink: 0; background: var(--bg-primary); border-bottom: 1px solid var(--border); box-shadow: var(--shadow-sm); position: sticky; top: 0; z-index: 100; }
+.h-logo { font-size: 17px; font-weight: 600; color: var(--text-primary); letter-spacing: -.3px; }
+.h-logo span { color: var(--accent); }
+.h-right { display: flex; align-items: center; gap: 10px; }
+.user-badge { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-bg); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(--accent); flex-shrink: 0; }
+.user-name { font-size: 13px; color: var(--text-secondary); }
+.btn-sm { background: none; border: 1px solid var(--border); color: var(--text-secondary); border-radius: var(--radius-sm); padding: 5px 10px; font-size: 12px; cursor: pointer; font-family: 'Golos Text', Arial, sans-serif; transition: border-color .2s, color .2s; -webkit-appearance: none; }
+.btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+
+.hamburger { display: none; flex-direction: column; gap: 4px; cursor: pointer; padding: 4px; background: none; border: none; }
+.hamburger span { display: block; width: 20px; height: 2px; background: var(--text-tertiary); border-radius: 2px; transition: transform .3s, opacity .3s; }
+.hamburger.open span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.hamburger.open span:nth-child(2) { opacity: 0; }
+.hamburger.open span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+/* LAYOUT */
+.body-wrap { display: flex; flex: 1; position: relative; }
+
+/* SIDEBAR */
+aside { width: var(--sidebar-w); flex-shrink: 0; background: var(--bg-secondary); border-right: 1px solid var(--border); padding: 20px 0; overflow-y: auto; transition: transform .3s ease; }
+.s-section { font-size: 10px; font-weight: 500; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 1px; padding: 0 18px 8px; margin-top: 4px; }
+.s-item { display: flex; align-items: center; gap: 9px; padding: 10px 18px; font-size: 13px; cursor: pointer; color: var(--text-secondary); border-left: 2px solid transparent; transition: color .15s, border-color .15s, background .15s; user-select: none; }
+.s-item:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+.s-item.active { color: var(--accent); border-left-color: var(--accent); background: var(--accent-bg); font-weight: 500; }
+.s-ico { font-size: 14px; width: 18px; text-align: center; }
+.s-cnt { margin-left: auto; font-size: 10px; font-weight: 500; background: var(--accent-bg); color: var(--accent); border-radius: 10px; padding: 2px 7px; }
+.s-divider { height: 1px; background: var(--divider); margin: 12px 18px; }
+.s-sub { padding-left: 36px; font-size: 12px; }
+
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.3); z-index: 90; }
+.overlay.visible { display: block; }
+
+/* MAIN */
+main { flex: 1; overflow-y: auto; padding: 24px 24px 40px; min-width: 0; }
+
+.page-hd { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 12px; flex-wrap: wrap; }
+.page-title { font-size: 24px; font-weight: 500; letter-spacing: -.5px; }
+.page-sub { font-size: 13px; color: var(--text-secondary); margin-top: 3px; }
+
+/* STATS */
+.stats { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin-bottom: 24px; }
+.stat { background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; box-shadow: var(--shadow-sm); }
+.stat-n { font-size: 24px; font-weight: 500; color: var(--accent); }
+.stat-l { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+/* CONTROLS */
+.controls { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+.search-wrap { position: relative; }
+.search-ico { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 14px; color: var(--text-tertiary); pointer-events: none; }
+.search-input { width: 100%; background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 11px 14px 11px 38px; color: var(--text-primary); font-family: 'Golos Text', Arial, sans-serif; font-size: 14px; outline: none; transition: border-color .2s, box-shadow .2s; -webkit-appearance: none; }
+.search-input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(91,155,213,0.12); }
+.search-input::placeholder { color: var(--text-tertiary); }
+.filter-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.filter-label { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .5px; font-weight: 500; margin-right: 4px; }
+.fbtn { background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-secondary); border-radius: var(--radius-md); padding: 7px 14px; font-size: 12px; cursor: pointer; font-family: 'Golos Text', Arial, sans-serif; font-weight: 400; transition: all .15s; white-space: nowrap; -webkit-appearance: none; }
+.fbtn:hover { border-color: var(--border-hover); color: var(--text-primary); }
+.fbtn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); font-weight: 500; }
+.fbtn-reset { background: none; border: 1px solid rgba(220,80,80,.25); color: var(--error); border-radius: var(--radius-md); padding: 7px 14px; font-size: 12px; cursor: pointer; font-family: 'Golos Text', Arial, sans-serif; transition: all .15s; white-space: nowrap; }
+.fbtn-reset:hover { background: rgba(220,80,80,.06); }
+
+/* COUNTRY FILTER */
+.country-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.country-btn { background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-secondary); border-radius: var(--radius-md); padding: 5px 10px; font-size: 11px; cursor: pointer; font-family: 'Golos Text', Arial, sans-serif; transition: all .15s; white-space: nowrap; }
+.country-btn:hover { border-color: var(--border-hover); color: var(--text-primary); }
+.country-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+
+/* GRID */
+.grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(260px,1fr)); gap: 16px; }
+
+.card { background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; transition: transform .2s, border-color .2s, box-shadow .2s; cursor: pointer; box-shadow: var(--shadow-sm); }
+.card:hover { transform: translateY(-2px); border-color: var(--border-hover); box-shadow: var(--shadow-md); }
+.c-thumb { height: 120px; position: relative; display: flex; align-items: center; justify-content: center; font-size: 28px; background: var(--bg-secondary); overflow: hidden; }
+.c-thumb-img { width: 100%; height: 100%; object-fit: cover; }
+.ct-pdf   { background: linear-gradient(135deg, #FDF2F2, #F5E6E6); }
+.ct-pptx  { background: linear-gradient(135deg, #FDF5EE, #F5ECE0); }
+.ct-image { background: linear-gradient(135deg, #EEFDF7, #E0F5EC); }
+.ct-doc   { background: linear-gradient(135deg, #EEF2FD, #E0E8F5); }
+.ct-zip   { background: linear-gradient(135deg, #FDFCEE, #F5F0E0); }
+.ct-video { background: linear-gradient(135deg, #F5EEFD, #ECE0F5); }
+.ct-html  { background: linear-gradient(135deg, #EEFAFD, #E0F2F5); }
+.c-badge { position: absolute; top: 8px; right: 8px; font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: .3px; padding: 3px 8px; border-radius: var(--radius-sm); }
+.b-pdf   { background: rgba(220,80,80,.10);  color: #C45555; }
+.b-pptx  { background: rgba(180,100,60,.10); color: #B47040; }
+.b-image { background: rgba(60,160,120,.10); color: #34B78F; }
+.b-doc   { background: rgba(80,120,200,.10); color: #5078C8; }
+.b-zip   { background: rgba(180,160,60,.10); color: #A89030; }
+.b-video { background: rgba(140,80,180,.10); color: #8C50B4; }
+.b-html  { background: rgba(60,160,180,.10); color: #3CA0B4; }
+.c-new { position: absolute; top: 8px; left: 8px; font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: .3px; padding: 3px 8px; border-radius: var(--radius-sm); background: rgba(229,168,75,.12); color: #C48A30; }
+.c-body { padding: 14px 16px 16px; }
+.c-cat { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--accent-light); font-weight: 500; margin-bottom: 6px; }
+.c-subcat { font-size: 11px; color: var(--warning); margin-bottom: 4px; }
+.c-title { font-size: 15px; font-weight: 500; line-height: 1.3; color: var(--text-primary); margin-bottom: 4px; letter-spacing: -.2px; }
+.c-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 10px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.c-meta { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-tertiary); }
+.c-country { font-size: 11px; color: var(--text-tertiary); margin-bottom: 8px; }
+.btn-dl { display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--accent-bg); border: 1px solid rgba(91,155,213,.2); color: var(--accent); border-radius: var(--radius-md); padding: 10px 12px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: 'Golos Text', Arial, sans-serif; transition: all .15s; margin-top: 12px; width: 100%; -webkit-appearance: none; min-height: 40px; text-decoration: none; }
+.btn-dl:hover { background: var(--accent-bg-hover); border-color: rgba(91,155,213,.35); }
+.btn-dl.done { background: var(--bg-tertiary); color: var(--text-tertiary); border-color: var(--border); }
+
+/* ACTIVITY */
+.act-table-wrap { background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; overflow-x: auto; box-shadow: var(--shadow-sm); }
+.act-table { width: 100%; border-collapse: collapse; min-width: 480px; }
+.act-table th { font-size: 10px; text-transform: uppercase; letter-spacing: .7px; color: var(--text-tertiary); font-weight: 500; padding: 11px 14px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.act-table td { font-size: 12px; padding: 11px 14px; border-bottom: 1px solid var(--divider); color: var(--text-primary); }
+.act-table tr:last-child td { border-bottom: none; }
+.act-table tr:hover td { background: var(--bg-tertiary); }
+.tag { font-size: 10px; background: var(--accent-bg); color: var(--accent); padding: 2px 7px; border-radius: var(--radius-sm); }
+
+.empty { text-align: center; padding: 48px 20px; color: var(--text-tertiary); grid-column: 1/-1; }
+.empty-ico { font-size: 36px; margin-bottom: 10px; }
+
+/* LOADING */
+.loading { text-align: center; padding: 60px 20px; grid-column: 1/-1; }
+.spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; margin-bottom: 12px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* TOAST */
+#toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(10px); background: var(--text-primary); border-radius: var(--radius-lg); padding: 12px 20px; font-size: 13px; color: var(--text-inverse); display: flex; align-items: center; gap: 8px; opacity: 0; transition: opacity .3s, transform .3s; z-index: 300; pointer-events: none; white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; box-shadow: var(--shadow-lg); }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* DATA SOURCE INDICATOR */
+.data-src { font-size: 10px; color: var(--text-tertiary); padding: 4px 18px 12px; display: flex; align-items: center; gap: 6px; }
+.data-dot { width: 6px; height: 6px; border-radius: 50%; }
+.data-dot.online { background: var(--success); }
+.data-dot.offline { background: var(--error); }
+
+/* BOTTOM NAV */
+.bottom-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-primary); border-top: 1px solid var(--border); box-shadow: 0 -2px 8px rgba(0,0,0,0.04); padding: 6px 0 max(6px, env(safe-area-inset-bottom)); z-index: 100; }
+.bnav-inner { display: flex; justify-content: space-around; }
+.bnav-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; cursor: pointer; color: var(--text-tertiary); font-family: 'Golos Text', Arial, sans-serif; font-size: 10px; padding: 4px 12px; transition: color .15s; -webkit-appearance: none; }
+.bnav-btn.active { color: var(--accent); }
+.bnav-ico { font-size: 19px; line-height: 1; }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-secondary); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .hamburger { display: flex; }
+  .user-name { display: none !important; }
+  .bottom-nav { display: block; }
+  aside { position: fixed; top: 60px; left: 0; bottom: 60px; z-index: 95; transform: translateX(-100%); box-shadow: none; }
+  aside.open { transform: translateX(0); box-shadow: var(--shadow-md); }
+  main { padding: 16px 14px 80px; }
+  .grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .c-thumb { height: 80px; font-size: 24px; }
+  .stats { gap: 8px; }
+  #toast { bottom: 72px; }
+}
+@media (max-width: 420px) {
+  .grid { grid-template-columns: 1fr; }
+  .login-card { padding: 32px 24px; }
+}
+@media (min-width: 769px) {
+  aside { position: relative; transform: none !important; }
+  .bottom-nav { display: none !important; }
+  .hamburger { display: none !important; }
+  .user-name { display: block; }
+}
+@media (min-width: 1100px) {
+  main { padding: 28px 36px 40px; }
+  .stats { grid-template-columns: repeat(4,1fr); }
+}
+
+/* TELEGRAM SECTION */
+.tg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.tg-card { background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-sm); transition: transform .2s, box-shadow .2s; }
+.tg-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.tg-card-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.tg-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--accent-bg); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.tg-card-info { flex: 1; min-width: 0; }
+.tg-card-name { font-size: 14px; font-weight: 500; color: var(--text-primary); line-height: 1.3; }
+.tg-card-subs { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+.tg-card-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 14px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tg-card-btn { display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--accent-bg); border: 1px solid rgba(91,155,213,.2); color: var(--accent); border-radius: var(--radius-md); padding: 9px 14px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: 'Golos Text', Arial, sans-serif; transition: all .15s; width: 100%; text-decoration: none; }
+.tg-card-btn:hover { background: var(--accent-bg-hover); border-color: rgba(91,155,213,.35); }
+.tg-folder-banner { background: linear-gradient(135deg, var(--accent-bg), #E8F0FE); border: 1px solid rgba(91,155,213,.2); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.tg-folder-text { flex: 1; min-width: 200px; }
+.tg-folder-title { font-size: 16px; font-weight: 500; color: var(--text-primary); margin-bottom: 4px; }
+.tg-folder-sub { font-size: 13px; color: var(--text-secondary); }
+.tg-folder-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: var(--text-inverse); border-radius: var(--radius-md); padding: 11px 20px; font-size: 14px; font-weight: 500; text-decoration: none; font-family: 'Golos Text', Arial, sans-serif; transition: background .2s; white-space: nowrap; }
+.tg-folder-btn:hover { background: #4E8DC5; }
+
+/* MATERIAL PROFILE MODAL */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--bg-primary); border-radius: var(--radius-xl); max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); position: relative; }
+.modal-close { position: absolute; top: 12px; right: 12px; background: var(--bg-tertiary); border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 16px; cursor: pointer; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; z-index: 1; }
+.modal-close:hover { background: var(--border); }
+.modal-thumb { height: 80px; display: flex; align-items: center; justify-content: center; font-size: 32px; border-radius: var(--radius-xl) var(--radius-xl) 0 0; }
+.modal-body { padding: 20px 24px 24px; }
+.modal-cat { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--accent-light); font-weight: 500; margin-bottom: 4px; }
+.modal-title { font-size: 20px; font-weight: 500; letter-spacing: -.3px; margin-bottom: 6px; }
+.modal-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px; }
+.modal-meta { display: flex; gap: 16px; font-size: 12px; color: var(--text-tertiary); margin-bottom: 20px; flex-wrap: wrap; }
+.modal-meta span { display: flex; align-items: center; gap: 4px; }
+.modal-section { margin-bottom: 18px; }
+.modal-section-title { font-size: 13px; font-weight: 500; color: var(--text-primary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.modal-brief { font-size: 13px; color: var(--text-secondary); line-height: 1.6; white-space: pre-line; }
+.modal-sms { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 40px 14px 14px; font-size: 13px; color: var(--text-primary); line-height: 1.5; white-space: pre-line; position: relative; }
+.modal-sms-copy { position: absolute; top: 8px; right: 8px; background: var(--accent-bg); border: 1px solid rgba(91,155,213,.2); color: var(--accent); border-radius: var(--radius-sm); padding: 4px 10px; font-size: 11px; cursor: pointer; font-family: 'Golos Text', Arial, sans-serif; }
+.modal-sms-copy:hover { background: var(--accent-bg-hover); }
+.modal-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.modal-tag { font-size: 11px; background: var(--accent-bg); color: var(--accent); padding: 3px 10px; border-radius: var(--radius-sm); font-weight: 500; }
+.modal-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+.modal-link { display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-primary); border-radius: var(--radius-md); padding: 10px 12px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: 'Golos Text', Arial, sans-serif; transition: all .15s; text-decoration: none; }
+.modal-link:hover { border-color: var(--border-hover); background: var(--bg-secondary); }
+.modal-share { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.modal-share-link { flex: 1; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 8px 12px; font-size: 12px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.modal-share-btn { background: var(--accent); color: var(--text-inverse); border: none; border-radius: var(--radius-md); padding: 8px 14px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: 'Golos Text', Arial, sans-serif; white-space: nowrap; }
+.modal-share-btn:hover { background: #4E8DC5; }
+.modal-rating { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.modal-stars { display: inline-flex; flex-direction: row-reverse; gap: 2px; }
+.modal-star { font-size: 22px; cursor: pointer; color: var(--border); transition: color .15s; user-select: none; }
+.modal-star.filled { color: #E5A84B; }
+.modal-stars:hover .modal-star.filled { color: var(--border); }
+.modal-star:hover,
+.modal-star:hover ~ .modal-star { color: #E5A84B !important; }
+.modal-rating-info { font-size: 12px; color: var(--text-tertiary); }
+
+/* POSTS */
+.posts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.post-card { background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px; box-shadow: var(--shadow-sm); transition: transform .2s, box-shadow .2s; display: flex; flex-direction: column; }
+.post-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.post-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.post-channel { font-size: 12px; font-weight: 500; color: var(--accent); }
+.post-date { font-size: 11px; color: var(--text-tertiary); margin-left: auto; }
+.post-text { font-size: 13px; color: var(--text-primary); line-height: 1.5; flex: 1; margin-bottom: 12px; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; }
+.post-footer { display: flex; align-items: center; justify-content: space-between; }
+.post-views { font-size: 11px; color: var(--text-tertiary); }
+.post-link { font-size: 12px; color: var(--accent); text-decoration: none; font-weight: 500; }
+.post-link:hover { text-decoration: underline; }
+.posts-loading { text-align: center; padding: 40px; color: var(--text-tertiary); }
+.posts-tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">tranio<span>.</span>hub</div>
+    <div class="login-sub">Маркетинговые материалы — только для команды</div>
+    <div id="auth-login">
+      <label class="fl">Email</label>
+      <input type="email" class="fi" id="l-email" placeholder="you@tranio.com" autocomplete="email">
+      <label class="fl">Пароль</label>
+      <input type="password" class="fi" id="l-pass" placeholder="••••••••" autocomplete="current-password">
+      <div class="login-error" id="l-err"></div>
+      <button class="btn-login" id="l-btn">Войти</button>
+      <div class="login-hint" style="cursor:pointer;text-decoration:underline" onclick="showReset()">Забыли пароль?</div>
+      <div class="login-hint" style="cursor:pointer;text-decoration:underline" onclick="showRegister()">Нет аккаунта? Зарегистрироваться</div>
+    </div>
+    <div id="auth-register" style="display:none">
+      <label class="fl">Имя</label>
+      <input type="text" class="fi" id="r-name" placeholder="Иван Петров" autocomplete="name">
+      <label class="fl">Email</label>
+      <input type="email" class="fi" id="r-email" placeholder="you@tranio.com" autocomplete="email">
+      <label class="fl">Пароль (мин. 6 символов)</label>
+      <input type="password" class="fi" id="r-pass" placeholder="••••••••" autocomplete="new-password">
+      <div class="login-error" id="r-err"></div>
+      <button class="btn-login" id="r-btn">Зарегистрироваться</button>
+      <div class="login-hint" style="cursor:pointer;text-decoration:underline" onclick="showLogin()">Уже есть аккаунт? Войти</div>
+    </div>
+    <div id="auth-confirm" style="display:none;text-align:center">
+      <div style="font-size:32px;margin-bottom:12px">&#9993;</div>
+      <div style="font-size:14px;color:var(--text-primary);margin-bottom:8px">Проверьте почту</div>
+      <div style="font-size:12px;color:var(--text-secondary);line-height:1.5">Мы отправили письмо с подтверждением на ваш email. Нажмите на ссылку в письме, чтобы завершить регистрацию.</div>
+      <div class="login-hint" style="cursor:pointer;text-decoration:underline;margin-top:16px" onclick="showLogin()">Назад к входу</div>
+    </div>
+    <div id="auth-reset" style="display:none">
+      <label class="fl">Email</label>
+      <input type="email" class="fi" id="rs-email" placeholder="you@tranio.com" autocomplete="email">
+      <div class="login-error" id="rs-err"></div>
+      <button class="btn-login" id="rs-btn">Отправить ссылку для сброса</button>
+      <div class="login-hint" style="cursor:pointer;text-decoration:underline" onclick="showLogin()">Назад к входу</div>
+    </div>
+    <div id="auth-reset-sent" style="display:none;text-align:center">
+      <div style="font-size:32px;margin-bottom:12px">&#9993;</div>
+      <div style="font-size:14px;color:var(--text-primary);margin-bottom:8px">Проверьте почту</div>
+      <div style="font-size:12px;color:var(--text-secondary);line-height:1.5">Мы отправили ссылку для сброса пароля. Откройте её, чтобы задать новый пароль.</div>
+      <div class="login-hint" style="cursor:pointer;text-decoration:underline;margin-top:16px" onclick="showLogin()">Назад к входу</div>
+    </div>
+    <div id="auth-newpass" style="display:none">
+      <div style="font-size:14px;color:var(--text-primary);margin-bottom:14px;text-align:center">Задайте новый пароль</div>
+      <label class="fl">Новый пароль (мин. 6 символов)</label>
+      <input type="password" class="fi" id="np-pass" placeholder="••••••••" autocomplete="new-password">
+      <div class="login-error" id="np-err"></div>
+      <button class="btn-login" id="np-btn">Сохранить новый пароль</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <header>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="hamburger" id="ham" aria-label="Меню"><span></span><span></span><span></span></button>
+      <div class="h-logo">tranio<span>.</span>hub</div>
+    </div>
+    <div class="h-right">
+      <div class="user-badge" id="u-ini">--</div>
+      <span class="user-name" id="u-name"></span>
+      <button class="btn-sm" onclick="doLogout()">Выйти</button>
+    </div>
+  </header>
+
+  <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+  <div class="body-wrap">
+    <aside id="sidebar">
+      <div class="s-section">Бренд</div>
+      <div class="s-item active" data-cat="all" onclick="filterCat('all',this)">
+        <span class="s-ico">&#9672;</span>Все материалы<span class="s-cnt" id="cnt-all">0</span>
+      </div>
+      <div class="s-item" data-brand="Tranio Capital" onclick="filterBrand('Tranio Capital',this)">
+        <span class="s-ico">&#9878;</span>Tranio Capital<span class="s-cnt" id="cnt-brand-capital">0</span>
+      </div>
+      <div class="s-item" data-brand="Tranio Brokerage" onclick="filterBrand('Tranio Brokerage',this)">
+        <span class="s-ico">&#9878;</span>Tranio Brokerage<span class="s-cnt" id="cnt-brand-brokerage">0</span>
+      </div>
+
+      <div class="s-divider"></div>
+      <div class="s-section">Категории</div>
+      <div class="s-item" data-cat="presentations" onclick="filterCat('presentations',this)">
+        <span class="s-ico">&#9649;</span>Презентации<span class="s-cnt" id="cnt-presentations">0</span>
+      </div>
+      <div class="s-item s-sub" data-cat="pres-regional" onclick="filterCat('pres-regional',this)">
+        <span class="s-ico">&#9670;</span>Региональные
+      </div>
+      <div class="s-item s-sub" data-cat="pres-company" onclick="filterCat('pres-company',this)">
+        <span class="s-ico">&#9670;</span>О компании
+      </div>
+      <div class="s-item" data-cat="email" onclick="filterCat('email',this)">
+        <span class="s-ico">&#9993;</span>E-mail рассылки<span class="s-cnt" id="cnt-email">0</span>
+      </div>
+      <div class="s-item" data-cat="messengers" onclick="filterCat('messengers',this)">
+        <span class="s-ico">&#9998;</span>Скрипты мессенджеров<span class="s-cnt" id="cnt-messengers">0</span>
+      </div>
+      <div class="s-item" data-cat="teasers" onclick="filterCat('teasers',this)">
+        <span class="s-ico">&#9733;</span>Тизеры и сторис<span class="s-cnt" id="cnt-teasers">0</span>
+      </div>
+      <div class="s-item" data-cat="webinars" onclick="filterCat('webinars',this)">
+        <span class="s-ico">&#9654;</span>Записи вебинаров<span class="s-cnt" id="cnt-webinars">0</span>
+      </div>
+      <div class="s-item" data-cat="analytics" onclick="filterCat('analytics',this)">
+        <span class="s-ico">&#9678;</span>Аналитика<span class="s-cnt" id="cnt-analytics">0</span>
+      </div>
+      <div class="s-item" data-cat="landings" onclick="filterCat('landings',this)">
+        <span class="s-ico">&#9744;</span>Посадочные страницы<span class="s-cnt" id="cnt-landings">0</span>
+      </div>
+      <div class="s-item" data-cat="articles" onclick="filterCat('articles',this)">
+        <span class="s-ico">&#9998;</span>Статьи<span class="s-cnt" id="cnt-articles">0</span>
+      </div>
+
+      <div class="s-divider"></div>
+      <div class="s-item" onclick="showTg()"><span class="s-ico">&#9993;</span>Telegram-каналы</div>
+      <div class="s-item admin-only" onclick="showAct()" style="display:none"><span class="s-ico">&#9681;</span>Лог скачиваний</div>
+
+      <div class="data-src" id="data-src">
+        <span class="data-dot offline"></span> <span>Локальные данные</span>
+      </div>
+    </aside>
+
+    <main>
+      <div id="mat-view">
+        <div class="page-hd">
+          <div>
+            <div class="page-title" id="v-title">Все материалы</div>
+            <div class="page-sub" id="v-sub">Актуальные маркетинговые материалы команды</div>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><div class="stat-n" id="s-files">0</div><div class="stat-l">Файлов</div></div>
+          <div class="stat"><div class="stat-n" id="s-dl">0</div><div class="stat-l">Скачиваний</div></div>
+          <div class="stat"><div class="stat-n" id="s-cats">0</div><div class="stat-l">Категорий</div></div>
+          <div class="stat"><div class="stat-n" id="s-new">0</div><div class="stat-l">Новинок</div></div>
+        </div>
+
+        <div class="controls">
+          <div class="search-wrap">
+            <span class="search-ico">&#8981;</span>
+            <input class="search-input" id="srch" placeholder="Поиск по названию, стране или описанию..." oninput="doSearch()">
+          </div>
+          <div class="filter-row" id="country-filters">
+            <span class="filter-label">Страна:</span>
+          </div>
+          <div class="filter-row" id="month-filters">
+            <span class="filter-label">Месяц:</span>
+          </div>
+          <div class="filter-row">
+            <span class="filter-label">Тип:</span>
+            <button class="fbtn" onclick="filterType('pdf',this)">PDF</button>
+            <button class="fbtn" onclick="filterType('pptx',this)">PPTX</button>
+            <button class="fbtn" onclick="filterType('image',this)">Image</button>
+            <button class="fbtn" onclick="filterType('video',this)">Video</button>
+            <button class="fbtn" onclick="filterType('doc',this)">DOC</button>
+            <button class="fbtn" onclick="filterType('html',this)">HTML</button>
+            <button class="fbtn fbtn-reset" onclick="resetFilters()">Сбросить</button>
+          </div>
+          <div class="filter-row" id="tag-filters" style="display:none">
+            <span class="filter-label">Теги:</span>
+          </div>
+          <div class="filter-row" id="rating-filters" style="display:none">
+            <span class="filter-label">Рейтинг:</span>
+            <button class="fbtn" onclick="filterRating(4,this)">★ 4+</button>
+            <button class="fbtn" onclick="filterRating(3,this)">★ 3+</button>
+            <button class="fbtn" onclick="filterRating(1,this)">С оценками</button>
+          </div>
+        </div>
+        <div class="grid" id="grid">
+          <div class="loading"><div class="spinner"></div><div style="color:var(--muted)">Загрузка материалов...</div></div>
+        </div>
+      </div>
+
+      <div id="act-view" style="display:none">
+        <div class="page-hd">
+          <div>
+            <div class="page-title">Лог скачиваний</div>
+            <div class="page-sub">Кто, когда и что скачал</div>
+          </div>
+          <button class="fbtn" onclick="showMat()">&#8592; Назад</button>
+        </div>
+        <div id="act-filters" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+          <span class="filter-label">Период:</span>
+          <button class="fbtn active" onclick="filterLog('all',this)">Все</button>
+          <button class="fbtn" onclick="filterLog('week',this)">Неделя</button>
+          <button class="fbtn" onclick="filterLog('month',this)">Месяц</button>
+          <span class="filter-label" style="margin-left:8px">Действие:</span>
+          <select id="log-action-filter" onchange="renderAct()" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-md);padding:7px 12px;font-size:12px;color:var(--text-primary);font-family:'Golos Text',Arial,sans-serif;cursor:pointer">
+            <option value="">Все</option>
+            <option value="download">Скачивания</option>
+            <option value="teaser">Тизеры</option>
+            <option value="onepage">1-page</option>
+            <option value="copy_sms">SMS</option>
+            <option value="rating">Оценки</option>
+          </select>
+          <span class="filter-label" style="margin-left:8px">Сотрудник:</span>
+          <select id="log-user-filter" onchange="renderAct()" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-md);padding:7px 12px;font-size:12px;color:var(--text-primary);font-family:'Golos Text',Arial,sans-serif;cursor:pointer">
+            <option value="">Все</option>
+          </select>
+        </div>
+        <div class="act-table-wrap">
+          <table class="act-table">
+            <thead><tr><th>Файл</th><th>Пользователь</th><th>Время</th><th>Действие</th><th>Рейтинг</th></tr></thead>
+            <tbody id="act-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TELEGRAM VIEW -->
+      <div id="tg-view" style="display:none">
+        <div class="page-hd">
+          <div>
+            <div class="page-title">Telegram-каналы Tranio</div>
+            <div class="page-sub">Последние посты и все каналы компании</div>
+          </div>
+          <button class="fbtn" onclick="showMat()">&#8592; Назад</button>
+        </div>
+
+        <!-- LATEST POSTS -->
+        <div style="margin-bottom:28px">
+          <div style="font-size:18px;font-weight:500;margin-bottom:4px;letter-spacing:-.3px">Последние посты</div>
+          <div style="font-size:13px;color:var(--text-secondary);margin-bottom:14px">Свежие публикации из всех каналов</div>
+          <div class="posts-tabs" id="posts-tabs">
+            <button class="fbtn active" onclick="filterPosts(null,this)">Все</button>
+          </div>
+          <div id="posts-grid" class="posts-grid">
+            <div class="posts-loading"><div class="spinner"></div><div>Загружаем посты...</div></div>
+          </div>
+        </div>
+
+        <div style="font-size:18px;font-weight:500;margin-bottom:14px;letter-spacing:-.3px">Все каналы</div>
+
+        <div class="tg-folder-banner">
+          <div class="tg-folder-text">
+            <div class="tg-folder-title">&#128230; Добавить все каналы одной кнопкой</div>
+            <div class="tg-folder-sub">Папка со всеми каналами Tranio — откроется в Telegram</div>
+          </div>
+          <a href="https://t.me/addlist/C0_4tW_uQOBkZDVi" target="_blank" rel="noopener" class="tg-folder-btn">&#9993; Добавить папку</a>
+        </div>
+
+        <div class="tg-grid">
+          <div class="tg-card">
+            <div class="tg-card-head">
+              <div class="tg-avatar">🌍</div>
+              <div class="tg-card-info">
+                <div class="tg-card-name">Tranio: гид по зарубежной недвижимости</div>
+                <div class="tg-card-subs">4 880 подписчиков</div>
+              </div>
+            </div>
+            <div class="tg-card-desc">Новости, аналитика и тенденции рынка зарубежной недвижимости</div>
+            <a href="https://t.me/traniorealestate" target="_blank" rel="noopener" class="tg-card-btn">&#9993; Открыть канал</a>
+          </div>
+
+          <div class="tg-card">
+            <div class="tg-card-head">
+              <div class="tg-avatar">🇦🇪</div>
+              <div class="tg-card-info">
+                <div class="tg-card-name">Жизнь и инвестиции в Дубае</div>
+                <div class="tg-card-subs">4 602 подписчика</div>
+              </div>
+            </div>
+            <div class="tg-card-desc">Новости, аналитика и недвижимость в ОАЭ от Tranio</div>
+            <a href="https://t.me/traniodubai" target="_blank" rel="noopener" class="tg-card-btn">&#9993; Открыть канал</a>
+          </div>
+
+          <div class="tg-card">
+            <div class="tg-card-head">
+              <div class="tg-avatar">🇹🇭</div>
+              <div class="tg-card-info">
+                <div class="tg-card-name">Жизнь и инвестиции в Таиланде</div>
+                <div class="tg-card-subs">3 849 подписчиков</div>
+              </div>
+            </div>
+            <div class="tg-card-desc">Новости, аналитика и недвижимость в Таиланде от Tranio</div>
+            <a href="https://t.me/TranioThailand" target="_blank" rel="noopener" class="tg-card-btn">&#9993; Открыть канал</a>
+          </div>
+
+          <div class="tg-card">
+            <div class="tg-card-head">
+              <div class="tg-avatar">🇹🇷</div>
+              <div class="tg-card-info">
+                <div class="tg-card-name">Жизнь и инвестиции в Турции</div>
+                <div class="tg-card-subs">3 024 подписчика</div>
+              </div>
+            </div>
+            <div class="tg-card-desc">Новости, аналитика и недвижимость в Турции от Tranio</div>
+            <a href="https://t.me/TranioTurkey" target="_blank" rel="noopener" class="tg-card-btn">&#9993; Открыть канал</a>
+          </div>
+
+          <div class="tg-card">
+            <div class="tg-card-head">
+              <div class="tg-avatar">🇬🇷</div>
+              <div class="tg-card-info">
+                <div class="tg-card-name">Жизнь и инвестиции в Греции</div>
+                <div class="tg-card-subs">1 518 подписчиков</div>
+              </div>
+            </div>
+            <div class="tg-card-desc">Новости, аналитика и недвижимость в Греции от Tranio</div>
+            <a href="https://t.me/GreeceTranio" target="_blank" rel="noopener" class="tg-card-btn">&#9993; Открыть канал</a>
+          </div>
+
+          <div class="tg-card">
+            <div class="tg-card-head">
+              <div class="tg-avatar">🤝</div>
+              <div class="tg-card-info">
+                <div class="tg-card-name">Tranio: Партнёры</div>
+                <div class="tg-card-subs">1 415 подписчиков</div>
+              </div>
+            </div>
+            <div class="tg-card-desc">Закрытый канал для партнёров Tranio</div>
+            <a href="https://t.me/+9p2ogfTmBaw3NzMy" target="_blank" rel="noopener" class="tg-card-btn">&#9993; Открыть канал</a>
+          </div>
+
+          <div class="tg-card">
+            <div class="tg-card-head">
+              <div class="tg-avatar">🇮🇩</div>
+              <div class="tg-card-info">
+                <div class="tg-card-name">Жизнь и инвестиции на Бали</div>
+                <div class="tg-card-subs">230 подписчиков</div>
+              </div>
+            </div>
+            <div class="tg-card-desc">Новости, аналитика и недвижимость на Бали от Tranio</div>
+            <a href="https://t.me/TranioBali" target="_blank" rel="noopener" class="tg-card-btn">&#9993; Открыть канал</a>
+          </div>
+
+          <div class="tg-card">
+            <div class="tg-card-head">
+              <div class="tg-avatar">🇨🇾</div>
+              <div class="tg-card-info">
+                <div class="tg-card-name">Кипр: недвижимость и инвестиции</div>
+                <div class="tg-card-subs">164 подписчика</div>
+              </div>
+            </div>
+            <div class="tg-card-desc">Новости, аналитика и недвижимость на Кипре от Tranio</div>
+            <a href="https://t.me/TranioCyprus" target="_blank" rel="noopener" class="tg-card-btn">&#9993; Открыть канал</a>
+          </div>
+        </div>
+      </div>
+
+      </div>
+    </main>
+  </div>
+
+  <nav class="bottom-nav">
+    <div class="bnav-inner">
+      <button class="bnav-btn active" id="bn-mat" onclick="showMat();setB('bn-mat')"><span class="bnav-ico">&#9672;</span>Файлы</button>
+      <button class="bnav-btn" id="bn-tg" onclick="showTg();setB('bn-tg')"><span class="bnav-ico">&#9993;</span>Telegram</button>
+      <button class="bnav-btn admin-only" id="bn-act" onclick="showAct();setB('bn-act')" style="display:none"><span class="bnav-ico">&#9681;</span>Лог</button>
+      <button class="bnav-btn" onclick="doLogout()"><span class="bnav-ico">&#8677;</span>Выйти</button>
+    </div>
+  </nav>
+</div>
+
+<div id="toast"><span>&#11015;</span><span id="t-msg"></span></div>
+
+<!-- MATERIAL PROFILE MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeProfile()">
+  <div class="modal" id="modal">
+    <button class="modal-close" onclick="closeProfile()">&#10005;</button>
+    <div class="modal-thumb" id="modal-thumb"></div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+// =============================
+// SUPABASE CONFIG
+// =============================
+const SUPABASE_URL = 'https://nctkgoasvoumfnlgcdrj.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_bqF0kmX7F3pfRhC02c1Q0g_x7FVgyFp';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// =============================
+// CONFIG — Google Sheets
+// =============================
+// Чтобы подключить Google Sheets:
+// 1. Создай Google Sheet с такой структурой (лист "Materials"):
+//    ID | Название | Категория | Подкатегория | Страна | Тип файла | Размер | Дата | Скачиваний | Новинка | Ссылка на файл | Иконка | Описание
+// 2. Опубликуй лист: Файл → Опубликовать → CSV
+// 3. Вставь URL ниже
+const SHEET_URL = '/api/materials';
+
+// USERS — managed by Supabase Auth
+
+// =============================
+// CATEGORIES CONFIG
+// =============================
+const CATEGORIES = {
+  'all':            { label: 'Все материалы',       icon: '&#9672;' },
+  'presentations':  { label: 'Презентации',         icon: '&#9649;' },
+  'pres-regional':  { label: 'Презентации региональные', icon: '&#9670;', parent: 'presentations' },
+  'pres-company':   { label: 'Презентации о компании',   icon: '&#9670;', parent: 'presentations' },
+  'email':          { label: 'E-mail рассылки',     icon: '&#9993;' },
+  'messengers':     { label: 'Скрипты мессенджеров', icon: '&#9998;' },
+  'teasers':        { label: 'Тизеры и сторис',     icon: '&#9733;' },
+  'webinars':       { label: 'Записи вебинаров',    icon: '&#9654;' },
+  'analytics':      { label: 'Аналитика',           icon: '&#9678;' },
+  'landings':       { label: 'Посадочные страницы', icon: '&#9744;' },
+  'articles':       { label: 'Статьи',             icon: '&#9998;' },
+};
+
+const COUNTRY_FLAGS = {
+  'Thailand': '🇹🇭', 'UAE': '🇦🇪', 'Cyprus': '🇨🇾', 'Indonesia': '🇮🇩',
+  'Greece': '🇬🇷', 'Turkey': '🇹🇷', 'Oman': '🇴🇲', 'Saudi Arabia': '🇸🇦',
+  'Montenegro': '🇲🇪', 'Spain': '🇪🇸', 'Portugal': '🇵🇹', 'Cambodia': '🇰🇭',
+  'Russia': '🇷🇺', 'Global': '🌍', 'Tranio Capital': '🏦', 'Tranio Brokerage': '🏢',
+};
+
+// =============================
+// DEMO DATA (используется пока нет Google Sheet)
+// =============================
+const DEMO_DATA = [
+  // Презентации региональные
+  {id:1,  title:'Недвижимость Таиланда — презентация для клиентов', desc:'Обзор рынка, ключевые локации, типы объектов и доходность', cat:'pres-regional', country:'Thailand', type:'pptx', size:'8.2 MB', date:'2025-03-05', dl:18, isNew:true, ico:'📋', url:''},
+  {id:2,  title:'Инвестиции в Кипр — обзор рынка 2025', desc:'Основные районы, цены, программы ВНЖ через покупку', cat:'pres-regional', country:'Cyprus', type:'pptx', size:'6.1 MB', date:'2025-03-01', dl:14, isNew:true, ico:'📋', url:''},
+  {id:3,  title:'ОАЭ — презентация для инвесторов', desc:'Дубай и Абу-Даби, доходность, visa golden', cat:'pres-regional', country:'UAE', type:'pptx', size:'7.5 MB', date:'2025-02-25', dl:22, isNew:false, ico:'📋', url:''},
+  {id:4,  title:'Бали и Ломбок — обзор для покупателей', desc:'Цены, аренда, ROI, юридические аспекты', cat:'pres-regional', country:'Indonesia', type:'pptx', size:'5.9 MB', date:'2025-02-20', dl:11, isNew:false, ico:'📋', url:''},
+  {id:5,  title:'Греция — ВНЖ через покупку недвижимости', desc:'Программа Golden Visa, требования, процесс', cat:'pres-regional', country:'Greece', type:'pptx', size:'6.3 MB', date:'2025-02-15', dl:9, isNew:false, ico:'📋', url:''},
+  {id:6,  title:'Турция — инвестиции в недвижимость 2025', desc:'Стамбул, Анталья, гражданство через инвестиции', cat:'pres-regional', country:'Turkey', type:'pptx', size:'5.4 MB', date:'2025-02-10', dl:7, isNew:false, ico:'📋', url:''},
+
+  // Презентации о компании
+  {id:7,  title:'Tranio Company Deck — инвесторам', desc:'Общая презентация о компании, миссия, показатели', cat:'pres-company', country:'Global', type:'pptx', size:'8.1 MB', date:'2025-03-02', dl:32, isNew:true, ico:'📋', url:''},
+  {id:8,  title:'Tranio — брошюра для брокеров-партнёров', desc:'Как работает партнёрская программа Tranio', cat:'pres-company', country:'Global', type:'pdf', size:'4.5 MB', date:'2025-01-20', dl:33, isNew:false, ico:'📄', url:''},
+  {id:9,  title:'About Tranio Capital — English', desc:'Investment presentation for international partners', cat:'pres-company', country:'Global', type:'pdf', size:'3.2 MB', date:'2025-02-01', dl:15, isNew:false, ico:'📄', url:''},
+
+  // E-mail рассылки
+  {id:10, title:'Email-шаблон: Новые объекты Таиланда', desc:'HTML-шаблон рассылки для Mindbox, адаптивный', cat:'email', country:'Thailand', type:'html', size:'0.4 MB', date:'2025-03-06', dl:8, isNew:true, ico:'📧', url:''},
+  {id:11, title:'Email-шаблон: Инвестируй в Кипр', desc:'Рассылка для базы по Кипру, варианты ROI', cat:'email', country:'Cyprus', type:'html', size:'0.3 MB', date:'2025-02-28', dl:12, isNew:false, ico:'📧', url:''},
+  {id:12, title:'Email: Приглашение на GPD 2026', desc:'Шаблон приглашения на конференцию', cat:'email', country:'Global', type:'html', size:'0.2 MB', date:'2025-02-20', dl:19, isNew:false, ico:'📧', url:''},
+  {id:13, title:'Email-шаблон: ОАЭ — новые проекты', desc:'Рассылка о новых проектах в Дубае', cat:'email', country:'UAE', type:'html', size:'0.3 MB', date:'2025-02-15', dl:6, isNew:false, ico:'📧', url:''},
+
+  // Скрипты для мессенджеров
+  {id:14, title:'WhatsApp: Первый контакт — Таиланд', desc:'Скрипт для первого сообщения клиенту по Таиланду', cat:'messengers', country:'Thailand', type:'doc', size:'0.1 MB', date:'2025-03-04', dl:25, isNew:true, ico:'💬', url:''},
+  {id:15, title:'Telegram: Шаблон follow-up — ОАЭ', desc:'Серия follow-up сообщений для клиентов ОАЭ', cat:'messengers', country:'UAE', type:'doc', size:'0.1 MB', date:'2025-02-22', dl:18, isNew:false, ico:'💬', url:''},
+  {id:16, title:'WhatsApp: Скрипт для брокеров — универсальный', desc:'Универсальный скрипт для партнёров-брокеров', cat:'messengers', country:'Global', type:'doc', size:'0.1 MB', date:'2025-02-10', dl:30, isNew:false, ico:'💬', url:''},
+  {id:17, title:'Telegram: Приглашение на вебинар', desc:'Шаблон сообщения для приглашения на вебинар', cat:'messengers', country:'Global', type:'doc', size:'0.05 MB', date:'2025-01-28', dl:14, isNew:false, ico:'💬', url:''},
+
+  // Тизеры и сторис
+  {id:18, title:'Тизеры Кипр Q1 2025', desc:'Набор тизеров для Instagram/Facebook, 1080x1080', cat:'teasers', country:'Cyprus', type:'image', size:'45 MB', date:'2025-03-03', dl:31, isNew:true, ico:'🖼', url:''},
+  {id:19, title:'Сторис: Таиланд — жаркий сезон инвестиций', desc:'Серия сторис для Instagram, вертикальный формат', cat:'teasers', country:'Thailand', type:'image', size:'28 MB', date:'2025-02-25', dl:22, isNew:false, ico:'🖼', url:''},
+  {id:20, title:'Тизеры ОАЭ — Дубай 2025', desc:'Креативы для таргета Facebook/Instagram', cat:'teasers', country:'UAE', type:'image', size:'35 MB', date:'2025-02-18', dl:16, isNew:false, ico:'🖼', url:''},
+  {id:21, title:'Тизер-аффилиат Tranio Capital', desc:'Баннеры для партнёрских размещений', cat:'teasers', country:'Global', type:'image', size:'12 MB', date:'2025-02-05', dl:9, isNew:false, ico:'🖼', url:''},
+  {id:22, title:'Сторис: Греция — Golden Visa', desc:'Серия сторис о программе Golden Visa', cat:'teasers', country:'Greece', type:'image', size:'18 MB', date:'2025-01-30', dl:13, isNew:false, ico:'🖼', url:''},
+
+  // Записи вебинаров
+  {id:23, title:'Вебинар: Инвестиции в Таиланд 2025', desc:'Запись вебинара от 15 февраля, 47 мин', cat:'webinars', country:'Thailand', type:'video', size:'320 MB', date:'2025-02-15', dl:45, isNew:false, ico:'🎥', url:''},
+  {id:24, title:'Вебинар: Как купить на Кипре — пошаговый гид', desc:'Запись от 20 января, 38 мин', cat:'webinars', country:'Cyprus', type:'video', size:'280 MB', date:'2025-01-20', dl:38, isNew:false, ico:'🎥', url:''},
+  {id:25, title:'Вебинар: GPD 2026 — итоги конференции', desc:'Полная запись панельной дискуссии, 1ч 20мин', cat:'webinars', country:'Global', type:'video', size:'580 MB', date:'2025-02-28', dl:27, isNew:true, ico:'🎥', url:''},
+  {id:26, title:'Вебинар: Бали — куда и как инвестировать', desc:'Запись от 5 февраля, 52 мин', cat:'webinars', country:'Indonesia', type:'video', size:'350 MB', date:'2025-02-05', dl:19, isNew:false, ico:'🎥', url:''},
+
+  // Аналитика
+  {id:27, title:'Рынок недвижимости Таиланда 2025', desc:'Полный аналитический обзор: цены, тренды, прогнозы', cat:'analytics', country:'Thailand', type:'pdf', size:'2.4 MB', date:'2025-03-02', dl:14, isNew:true, ico:'📊', url:''},
+  {id:28, title:'Аналитика Кипр — Q4 2024', desc:'Квартальный отчёт по рынку Кипра', cat:'analytics', country:'Cyprus', type:'pdf', size:'1.8 MB', date:'2025-01-15', dl:21, isNew:false, ico:'📊', url:''},
+  {id:29, title:'ОАЭ — рынок недвижимости: тренды и прогноз', desc:'Обзор Дубая и Абу-Даби', cat:'analytics', country:'UAE', type:'pdf', size:'2.1 MB', date:'2025-02-10', dl:16, isNew:false, ico:'📊', url:''},
+  {id:30, title:'Индонезия — Бали/Ломбок обзор 2025', desc:'Цены, аренда, ROI, юридика', cat:'analytics', country:'Indonesia', type:'pdf', size:'1.8 MB', date:'2025-02-08', dl:11, isNew:false, ico:'📊', url:''},
+  {id:31, title:'Макро-прогноз Tranio 2025', desc:'Глобальный обзор рынков недвижимости', cat:'analytics', country:'Global', type:'pdf', size:'3.7 MB', date:'2025-03-01', dl:28, isNew:true, ico:'📊', url:''},
+  {id:32, title:'Турция — обзор рынка и аналитика', desc:'Стамбул, Анталья, тренды, цены', cat:'analytics', country:'Turkey', type:'pdf', size:'1.5 MB', date:'2025-01-25', dl:8, isNew:false, ico:'📊', url:''},
+
+  // Tranio Capital
+  {id:33, title:'Tranio Capital — презентация для инвесторов', desc:'Инвестиционные продукты, доходность, структура фондов', cat:'pres-company', country:'Tranio Capital', type:'pptx', size:'9.2 MB', date:'2025-03-08', dl:12, isNew:true, ico:'📋', url:''},
+  {id:34, title:'Tranio Capital — email для партнёров', desc:'Шаблон рассылки для аффилиатов и партнёров', cat:'email', country:'Tranio Capital', type:'html', size:'0.3 MB', date:'2025-03-01', dl:7, isNew:false, ico:'📧', url:''},
+  {id:35, title:'Тизер Tranio Capital — аффилиат-баннеры', desc:'Баннеры для партнёрских размещений, все форматы', cat:'teasers', country:'Tranio Capital', type:'image', size:'15 MB', date:'2025-02-20', dl:10, isNew:false, ico:'🖼', url:''},
+  {id:36, title:'Вебинар: Как работает Tranio Capital', desc:'Запись вебинара о продуктах и стратегии, 35 мин', cat:'webinars', country:'Tranio Capital', type:'video', size:'240 MB', date:'2025-02-12', dl:21, isNew:false, ico:'🎥', url:''},
+  {id:37, title:'Tranio Capital — аналитика портфеля Q4 2024', desc:'Результаты фондов, доходность, прогноз на 2025', cat:'analytics', country:'Tranio Capital', type:'pdf', size:'2.8 MB', date:'2025-01-30', dl:18, isNew:false, ico:'📊', url:''},
+  {id:38, title:'Скрипт WhatsApp: Tranio Capital для клиентов', desc:'Шаблон первого контакта по инвестиционным продуктам', cat:'messengers', country:'Tranio Capital', type:'doc', size:'0.1 MB', date:'2025-02-05', dl:14, isNew:false, ico:'💬', url:''},
+];
+
+// =============================
+// STATE
+// =============================
+let MATS = [];
+let curUser = null;
+const ADMINS = ['bogatenkov', 'skorykh'];
+function isAdmin() { return curUser && ADMINS.some(a => curUser.email && curUser.email.split('@')[0].toLowerCase() === a); }
+let filt = { cat: 'all', type: null, country: null, brand: null, month: null, tag: null, minRating: null };
+let q = '';
+let actLog = [];
+let dataFromSheet = false;
+let dlCounts = {};
+
+// =============================
+// SUPABASE: Activity Log & Download Counts
+// =============================
+async function loadActivityLog() {
+  try {
+    const { data, error } = await sb.from('activity_log')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (error) { console.warn('Log load error:', error.message); return; }
+    actLog = (data || []).map(r => ({
+      file: r.file_title,
+      user: r.user_name,
+      time: formatTimestamp(r.created_at),
+      rawDate: r.created_at,
+      dept: r.action || 'download',
+      fileId: r.file_id,
+    }));
+  } catch(e) { console.warn('Log load failed:', e); }
+}
+
+async function saveLogEntry(fileId, fileTitle, action) {
+  if (!curUser) return;
+  try {
+    await sb.from('activity_log').insert({
+      user_email: curUser.email,
+      user_name: curUser.name,
+      file_id: fileId,
+      file_title: fileTitle,
+      action: action || 'download',
+    });
+  } catch(e) { console.warn('Log save failed:', e); }
+}
+
+async function loadDlCounts() {
+  try {
+    const { data, error } = await sb.from('download_counts').select('*');
+    if (error) { console.warn('DL counts load error:', error.message); return; }
+    dlCounts = {};
+    (data || []).forEach(r => { dlCounts[r.file_id] = r.count; });
+  } catch(e) { console.warn('DL counts load failed:', e); }
+}
+
+async function incrementDlCount(fileId) {
+  const current = dlCounts[fileId] || 0;
+  const newCount = current + 1;
+  dlCounts[fileId] = newCount;
+  try {
+    await sb.from('download_counts').upsert(
+      { file_id: fileId, count: newCount },
+      { onConflict: 'file_id' }
+    );
+  } catch(e) { console.warn('DL count save failed:', e); }
+}
+
+// RATINGS
+let ratingsAvg = {};  // { material_id: { avg: 4.2, count: 5 } }
+let userRatings = {}; // { material_id: score }
+
+async function loadRatings() {
+  try {
+    // Load averages
+    const { data } = await sb.from('ratings').select('material_id, score');
+    if (data) {
+      const grouped = {};
+      data.forEach(r => {
+        if (!grouped[r.material_id]) grouped[r.material_id] = [];
+        grouped[r.material_id].push(r.score);
+      });
+      Object.keys(grouped).forEach(k => {
+        const scores = grouped[k];
+        ratingsAvg[k] = { avg: scores.reduce((a,b) => a+b, 0) / scores.length, count: scores.length };
+      });
+    }
+    // Load user's own ratings
+    if (curUser) {
+      const { data: myRatings } = await sb.from('ratings').select('material_id, score').eq('user_id', curUser.id);
+      if (myRatings) myRatings.forEach(r => { userRatings[r.material_id] = r.score; });
+    }
+  } catch(e) { console.warn('Ratings load failed:', e); }
+}
+
+async function setRating(materialId, score) {
+  if (!curUser) return;
+  userRatings[materialId] = score;
+  try {
+    await sb.from('ratings').upsert(
+      { user_id: curUser.id, material_id: materialId, score },
+      { onConflict: 'user_id,material_id' }
+    );
+    // Reload averages for this material
+    const { data } = await sb.from('ratings').select('score').eq('material_id', materialId);
+    if (data && data.length) {
+      ratingsAvg[materialId] = { avg: data.reduce((a,r) => a+r.score, 0) / data.length, count: data.length };
+    }
+    // Re-render stars in modal
+    const starsEl = document.getElementById('modal-stars');
+    if (starsEl) renderStars(starsEl, materialId);
+    // Log rating
+    const rm = MATS.find(x => x.id === materialId);
+    if (rm) {
+      saveLogEntry(materialId, rm.title + ' → ' + score + '★', 'rating');
+      actLog.unshift({ file: rm.title + ' → ' + score + '★', user: curUser.name, time: formatTimestamp(new Date().toISOString()), rawDate: new Date().toISOString(), dept: 'rating', fileId: materialId });
+    }
+    showToast('Оценка сохранена');
+  } catch(e) { console.warn('Rating save failed:', e); }
+}
+
+function renderStars(container, materialId) {
+  const myScore = userRatings[materialId] || 0;
+  const info = ratingsAvg[materialId];
+  let html = '<div class="modal-stars">';
+  for (let i = 5; i >= 1; i--) {
+    html += `<span class="modal-star ${i <= myScore ? 'filled' : ''}" onclick="setRating(${materialId},${i})">&#9733;</span>`;
+  }
+  html += '</div>';
+  if (info) {
+    html += `<span class="modal-rating-info">${info.avg.toFixed(1)} / 5 (${info.count} ${info.count === 1 ? 'оценка' : 'оценок'})</span>`;
+  }
+  container.innerHTML = html;
+}
+
+function formatTimestamp(iso) {
+  try {
+    const d = new Date(iso);
+    const now = new Date();
+    const dd = String(d.getDate()).padStart(2,'0');
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mi = String(d.getMinutes()).padStart(2,'0');
+    const today = now.toDateString() === d.toDateString();
+    const yesterday = new Date(now - 86400000).toDateString() === d.toDateString();
+    if (today) return 'Сегодня, ' + hh + ':' + mi;
+    if (yesterday) return 'Вчера, ' + hh + ':' + mi;
+    return dd + '.' + mm + ' ' + hh + ':' + mi;
+  } catch(e) { return ''; }
+}
+
+// =============================
+// INIT
+// =============================
+document.getElementById('l-btn').onclick = doLogin;
+document.getElementById('l-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+document.getElementById('r-btn').onclick = doRegister;
+document.getElementById('r-pass').addEventListener('keydown', e => { if(e.key==='Enter') doRegister(); });
+document.getElementById('rs-btn').onclick = doResetRequest;
+document.getElementById('rs-email').addEventListener('keydown', e => { if(e.key==='Enter') doResetRequest(); });
+document.getElementById('np-btn').onclick = doNewPass;
+document.getElementById('np-pass').addEventListener('keydown', e => { if(e.key==='Enter') doNewPass(); });
+document.getElementById('ham').onclick = toggleSidebar;
+
+// Detect password recovery flow synchronously from URL before any auth call.
+// Supabase puts recovery params in the URL hash (e.g. #access_token=...&type=recovery).
+// We must know this BEFORE checkSession() runs, otherwise enterApp() fires first
+// and the new-password screen gets stuck behind the app overlay.
+let isPasswordRecovery = (function detectRecovery() {
+  const hash = window.location.hash || '';
+  const search = window.location.search || '';
+  return /[#?&]type=recovery/.test(hash) || /[?&]type=recovery/.test(search);
+})();
+
+// Check existing session on page load
+(async function checkSession() {
+  try {
+    const { data: { session }, error } = await sb.auth.getSession();
+    if (error) console.warn('Session error:', error.message);
+    if (session && isPasswordRecovery) {
+      // Recovery link → skip entering app, show new-password screen instead
+      showNewPass();
+    } else if (session) {
+      enterApp(session.user);
+    }
+  } catch(e) { console.warn('Session check failed:', e); }
+})();
+
+// Listen for auth state changes (e.g. email confirmation redirect, token refresh)
+sb.auth.onAuthStateChange((event, session) => {
+  console.log('Auth event:', event);
+  // When user clicks the password recovery link in email, Supabase fires PASSWORD_RECOVERY
+  // and creates a temporary session. Show the "set new password" screen instead of entering app.
+  if (event === 'PASSWORD_RECOVERY') {
+    isPasswordRecovery = true;
+    showNewPass();
+    return;
+  }
+  // While in recovery flow, don't auto-enter the app on SIGNED_IN / TOKEN_REFRESHED
+  if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session && !curUser && !isPasswordRecovery) {
+    enterApp(session.user);
+  }
+  if (event === 'SIGNED_OUT') {
+    curUser = null;
+    isPasswordRecovery = false;
+  }
+});
+
+// =============================
+// AUTH
+// =============================
+function enterApp(user) {
+  const meta = user.user_metadata || {};
+  const name = meta.name || user.email.split('@')[0];
+  const ini = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2) || '??';
+  curUser = { id: user.id, email: user.email, name, ini, dept: meta.dept || '' };
+  document.getElementById('u-name').textContent = name;
+  document.getElementById('u-ini').textContent = ini;
+  // Clear any inline styles set by showNewPass() — otherwise they would override
+  // the .hide class and the login screen would stay visible on top of the app.
+  const ls = document.getElementById('login-screen');
+  ls.style.opacity = '';
+  ls.style.transform = '';
+  ls.style.pointerEvents = '';
+  ls.classList.add('hide');
+  document.getElementById('app').classList.add('visible');
+  // Show admin elements
+  if (isAdmin()) {
+    document.querySelectorAll('.admin-only').forEach(el => el.style.display = '');
+  }
+  loadData();
+}
+
+async function doLogin() {
+  const email = document.getElementById('l-email').value.trim().toLowerCase();
+  const pass = document.getElementById('l-pass').value;
+  const err = document.getElementById('l-err');
+  if (!email || !pass) { err.textContent = 'Введите email и пароль'; err.style.display = 'block'; return; }
+  err.style.display = 'none';
+  document.getElementById('l-btn').disabled = true;
+  try {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+    if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
+    enterApp(data.user);
+  } catch(e) {
+    err.textContent = 'Ошибка подключения'; err.style.display = 'block';
+  } finally {
+    document.getElementById('l-btn').disabled = false;
+  }
+}
+
+async function doRegister() {
+  const name = document.getElementById('r-name').value.trim();
+  const email = document.getElementById('r-email').value.trim().toLowerCase();
+  const pass = document.getElementById('r-pass').value;
+  const err = document.getElementById('r-err');
+  if (!name || !email || !pass) { err.textContent = 'Заполните все поля'; err.style.display = 'block'; return; }
+  if (pass.length < 6) { err.textContent = 'Пароль — минимум 6 символов'; err.style.display = 'block'; return; }
+  err.style.display = 'none';
+  document.getElementById('r-btn').disabled = true;
+  try {
+    const { data, error } = await sb.auth.signUp({
+      email,
+      password: pass,
+      options: { data: { name } }
+    });
+    if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
+    // If email confirmation is enabled, show confirm screen
+    if (data.user && !data.session) {
+      document.getElementById('auth-register').style.display = 'none';
+      document.getElementById('auth-confirm').style.display = 'block';
+    } else if (data.session) {
+      // Auto-confirmed (e.g. confirmation disabled in Supabase settings)
+      enterApp(data.user);
+    }
+  } catch(e) {
+    err.textContent = 'Ошибка подключения'; err.style.display = 'block';
+  } finally {
+    document.getElementById('r-btn').disabled = false;
+  }
+}
+
+async function doLogout() {
+  try { await sb.auth.signOut(); } catch(e) { console.warn('Logout error:', e); }
+  curUser = null;
+  MATS = [];
+  const app = document.getElementById('app');
+  app.classList.remove('visible');
+  app.style.display = 'none';
+  setTimeout(() => { app.style.display = ''; }, 100);
+  const ls = document.getElementById('login-screen');
+  ls.classList.remove('hide');
+  ls.style.opacity = '1';
+  ls.style.transform = 'none';
+  ls.style.pointerEvents = '';
+  showLogin();
+  closeSidebar();
+}
+
+function hideAllAuthScreens() {
+  ['auth-login','auth-register','auth-confirm','auth-reset','auth-reset-sent','auth-newpass']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+  ['l-err','r-err','rs-err','np-err'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = 'none';
+  });
+}
+
+function showRegister() {
+  hideAllAuthScreens();
+  document.getElementById('auth-register').style.display = 'block';
+}
+
+function showLogin() {
+  hideAllAuthScreens();
+  document.getElementById('auth-login').style.display = 'block';
+}
+
+function showReset() {
+  hideAllAuthScreens();
+  document.getElementById('auth-reset').style.display = 'block';
+  // Pre-fill email if user already typed it on login screen
+  const lEmail = document.getElementById('l-email').value.trim();
+  if (lEmail) document.getElementById('rs-email').value = lEmail;
+}
+
+function showNewPass() {
+  hideAllAuthScreens();
+  document.getElementById('auth-newpass').style.display = 'block';
+  // Make sure the login screen itself is visible (in case user is already in app)
+  const ls = document.getElementById('login-screen');
+  ls.classList.remove('hide');
+  ls.style.opacity = '1';
+  ls.style.transform = 'none';
+  ls.style.pointerEvents = '';
+  document.getElementById('app').classList.remove('visible');
+}
+
+async function doResetRequest() {
+  const email = document.getElementById('rs-email').value.trim().toLowerCase();
+  const err = document.getElementById('rs-err');
+  if (!email) { err.textContent = 'Введите email'; err.style.display = 'block'; return; }
+  err.style.display = 'none';
+  const btn = document.getElementById('rs-btn');
+  btn.disabled = true;
+  try {
+    const { error } = await sb.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + window.location.pathname
+    });
+    if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
+    hideAllAuthScreens();
+    document.getElementById('auth-reset-sent').style.display = 'block';
+  } catch(e) {
+    err.textContent = 'Ошибка подключения'; err.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function doNewPass() {
+  const pass = document.getElementById('np-pass').value;
+  const err = document.getElementById('np-err');
+  if (!pass || pass.length < 6) { err.textContent = 'Минимум 6 символов'; err.style.display = 'block'; return; }
+  err.style.display = 'none';
+  const btn = document.getElementById('np-btn');
+  btn.disabled = true;
+  try {
+    const { data, error } = await sb.auth.updateUser({ password: pass });
+    if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
+    // Recovery flow finished — drop the flag and clean the recovery tokens from the URL,
+    // so a page refresh doesn't put us back into the new-password screen.
+    isPasswordRecovery = false;
+    if (window.location.hash || window.location.search.includes('type=recovery')) {
+      history.replaceState(null, '', window.location.pathname);
+    }
+    // Password updated — drop into app (session is already active from recovery link)
+    if (data && data.user) {
+      enterApp(data.user);
+      showToast('Пароль обновлён');
+    } else {
+      // Defensive fallback: no user in response → re-fetch session and try again
+      const { data: { session: s2 } } = await sb.auth.getSession();
+      if (s2 && s2.user) { enterApp(s2.user); showToast('Пароль обновлён'); }
+      else { showLogin(); }
+    }
+  } catch(e) {
+    err.textContent = 'Ошибка подключения'; err.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// =============================
+// DATA LOADING
+// =============================
+async function loadData() {
+  // Load materials from Google Sheets or demo
+  if (SHEET_URL) {
+    try {
+      const resp = await fetch(SHEET_URL);
+      const csv = await resp.text();
+      MATS = parseCSV(csv);
+      dataFromSheet = true;
+      document.querySelector('#data-src .data-dot').classList.replace('offline','online');
+      document.querySelector('#data-src span:last-child').textContent = 'live';
+    } catch(e) {
+      console.warn('Google Sheets недоступен, используем демо-данные:', e);
+      MATS = [...DEMO_DATA];
+    }
+  } else {
+    MATS = [...DEMO_DATA];
+  }
+  // Load dl counts & activity log from Supabase
+  await Promise.all([loadDlCounts(), loadActivityLog(), loadRatings()]);
+  // Apply dl counts to materials
+  MATS.forEach(m => { if (dlCounts[m.id]) m.dl = dlCounts[m.id]; });
+  renderAll();
+  checkHash();
+}
+
+function splitCSVRows(csv) {
+  const rows = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < csv.length; i++) {
+    const ch = csv[i];
+    if (inQuotes) {
+      if (ch === '"' && csv[i+1] === '"') { current += '""'; i++; }
+      else if (ch === '"') { inQuotes = false; current += ch; }
+      else { current += ch; }
+    } else {
+      if (ch === '"') { inQuotes = true; current += ch; }
+      else if (ch === '\n' || (ch === '\r' && csv[i+1] === '\n')) {
+        if (current.trim()) rows.push(current);
+        current = '';
+        if (ch === '\r') i++;
+      } else { current += ch; }
+    }
+  }
+  if (current.trim()) rows.push(current);
+  return rows;
+}
+
+function parseCSV(csv) {
+  const lines = splitCSVRows(csv);
+  const header = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+  const dataLines = lines.slice(1);
+  // Find column indices by header name
+  const col = (name) => header.findIndex(h => h.includes(name));
+  const iID = col('id');
+  const iTitle = col('название') !== -1 ? col('название') : col('title');
+  const iCat = col('категория') !== -1 ? col('категория') : col('cat');
+  const iCountry = col('страна') !== -1 ? col('страна') : col('country');
+  const iType = col('тип') !== -1 ? col('тип') : col('type');
+  const iSize = col('размер') !== -1 ? col('размер') : col('size');
+  const iDate = col('дата') !== -1 ? col('дата') : col('date');
+  const iNew = col('новинка') !== -1 ? col('новинка') : col('new');
+  const iUrl = col('ссылка') !== -1 ? col('ссылка') : col('url');
+  const iIco = col('иконка') !== -1 ? col('иконка') : col('ico');
+  const iDesc = col('описание') !== -1 ? col('описание') : col('desc');
+  const iBrand = col('бренд') !== -1 ? col('бренд') : col('brand');
+  const iBrief = col('brief') !== -1 ? col('brief') : col('бриф');
+  const iSms = col('sms') !== -1 ? col('sms') : col('шаблон');
+  const iTags = col('tags') !== -1 ? col('tags') : col('теги');
+  const iUrlTeaser = col('url_teaser') !== -1 ? col('url_teaser') : col('тизер_ссылка');
+  const iUrlOnepage = col('url_onepage') !== -1 ? col('url_onepage') : col('onepage_ссылка');
+
+  return dataLines.map((line, idx) => {
+    const c = parseCSVLine(line);
+    if (c.length < 4 || !(c[iTitle]||'').trim()) return null;
+    const id = parseInt(c[iID]) || idx+1;
+    return {
+      id,
+      title: c[iTitle] || '',
+      cat: c[iCat] || '',
+      country: (c[iCountry] === 'Tranio Capital' || c[iCountry] === 'Tranio Brokerage') ? 'Global' : (c[iCountry] || ''),
+      type: c[iType] || 'pdf',
+      size: c[iSize] || '',
+      date: c[iDate] || '',
+      dl: dlCounts[id] || 0,
+      isNew: (c[iNew] || '').toUpperCase() === 'TRUE',
+      url: c[iUrl] || '',
+      ico: c[iIco] || '📄',
+      desc: c[iDesc] || '',
+      brand: iBrand >= 0 ? (c[iBrand] || '') : '',
+      brief: iBrief >= 0 ? (c[iBrief] || '') : '',
+      sms: iSms >= 0 ? (c[iSms] || '') : '',
+      tags: iTags >= 0 ? (c[iTags] || '').split(';').map(t => t.trim()).filter(Boolean) : [],
+      urlTeaser: iUrlTeaser >= 0 ? (c[iUrlTeaser] || '') : '',
+      urlOnepage: iUrlOnepage >= 0 ? (c[iUrlOnepage] || '') : '',
+    };
+  }).filter(Boolean);
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i+1] === '"') { current += '"'; i++; }
+      else if (ch === '"') { inQuotes = false; }
+      else { current += ch; }
+    } else {
+      if (ch === '"') { inQuotes = true; }
+      else if (ch === ',') { result.push(current.trim()); current = ''; }
+      else { current += ch; }
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+// =============================
+// RENDERING
+// =============================
+const CAT_LABELS = {
+  'presentations':'Презентация', 'pres-regional':'Презентация (регион)',
+  'pres-company':'Презентация (компания)', 'email':'E-mail рассылка',
+  'messengers':'Скрипт мессенджера', 'teasers':'Тизер / Сторис',
+  'webinars':'Запись вебинара', 'analytics':'Аналитика',
+  'landings':'Посадочная страница', 'articles':'Статья',
+};
+const TYPE_LABELS = {pdf:'PDF',pptx:'PPTX',image:'Image',doc:'DOC',video:'Video',zip:'ZIP',html:'HTML'};
+
+function renderAll() {
+  updateCounts();
+  renderCountryFilters();
+  renderMonthFilters();
+  renderTagFilters();
+  document.getElementById('rating-filters').style.display = Object.keys(ratingsAvg).length ? '' : 'none';
+  renderGrid();
+  updateStats();
+}
+
+const MONTH_NAMES = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+
+function renderMonthFilters() {
+  const months = new Map();
+  MATS.forEach(m => {
+    if (!m.date) return;
+    try {
+      const d = new Date(m.date);
+      if (isNaN(d)) return;
+      const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+      const label = MONTH_NAMES[d.getMonth()] + ' ' + d.getFullYear();
+      if (!months.has(key)) months.set(key, label);
+    } catch(e) {}
+  });
+  const sorted = [...months.entries()].sort((a,b) => b[0].localeCompare(a[0]));
+  const container = document.getElementById('month-filters');
+  container.innerHTML = '<span class="filter-label">Месяц:</span>' +
+    sorted.map(([key, label]) => {
+      const active = filt.month === key ? ' active' : '';
+      return `<button class="country-btn${active}" onclick="filterMonth('${key}',this)">${label}</button>`;
+    }).join('');
+}
+
+function updateCounts() {
+  const cats = ['all','presentations','email','messengers','teasers','webinars','analytics','landings','articles'];
+  cats.forEach(c => {
+    const n = c === 'all' ? MATS.length : MATS.filter(m => matchCat(m, c)).length;
+    const el = document.getElementById('cnt-'+c);
+    if (el) el.textContent = n;
+  });
+  // Brand counts
+  const capEl = document.getElementById('cnt-brand-capital');
+  const brkEl = document.getElementById('cnt-brand-brokerage');
+  if (capEl) capEl.textContent = MATS.filter(m => m.brand === 'Tranio Capital').length;
+  if (brkEl) brkEl.textContent = MATS.filter(m => m.brand === 'Tranio Brokerage').length;
+}
+
+function matchCat(m, cat) {
+  if (cat === 'all') return true;
+  if (cat === 'presentations') return m.cat === 'presentations' || m.cat === 'pres-regional' || m.cat === 'pres-company';
+  return m.cat === cat;
+}
+
+function renderCountryFilters() {
+  const countries = [...new Set(MATS.map(m => m.country))].sort();
+  const container = document.getElementById('country-filters');
+  container.innerHTML = '<span class="filter-label">Страна:</span>' +
+    countries.map(c => {
+      const flag = COUNTRY_FLAGS[c] || '🌐';
+      const active = filt.country === c ? ' active' : '';
+      return `<button class="country-btn${active}" onclick="filterCountry('${c}',this)">${flag} ${c}</button>`;
+    }).join('');
+}
+
+function renderTagFilters() {
+  const allTags = new Set();
+  MATS.forEach(m => { if (m.tags) m.tags.forEach(t => allTags.add(t)); });
+  const container = document.getElementById('tag-filters');
+  if (!allTags.size) { container.style.display = 'none'; return; }
+  container.style.display = '';
+  const sorted = [...allTags].sort();
+  container.innerHTML = '<span class="filter-label">Теги:</span>' +
+    sorted.map(t => {
+      const active = filt.tag === t ? ' active' : '';
+      return `<button class="country-btn${active}" onclick="filterTag('${t.replace(/'/g,"\\'")}',this)">${t}</button>`;
+    }).join('');
+}
+
+function filterTag(tag, btn) {
+  if (filt.tag === tag) {
+    filt.tag = null;
+    btn.classList.remove('active');
+  } else {
+    filt.tag = tag;
+    document.querySelectorAll('#tag-filters .country-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  renderGrid();
+}
+
+function filterRating(min, btn) {
+  if (filt.minRating === min) {
+    filt.minRating = null;
+    btn.classList.remove('active');
+  } else {
+    filt.minRating = min;
+    document.querySelectorAll('#rating-filters .fbtn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  renderGrid();
+}
+
+function updateStats() {
+  document.getElementById('s-files').textContent = MATS.length;
+  // Total downloads from Supabase counts (single source of truth)
+  const totalDl = Object.values(dlCounts).reduce((s, n) => s + n, 0);
+  document.getElementById('s-dl').textContent = totalDl;
+  const uniqueCats = new Set(MATS.map(m => m.cat));
+  document.getElementById('s-cats').textContent = uniqueCats.size;
+  document.getElementById('s-new').textContent = MATS.filter(m => m.isNew).length;
+}
+
+function getFiltered() {
+  return MATS.filter(m => {
+    if (filt.brand && m.brand !== filt.brand) return false;
+    if (filt.cat !== 'all' && !matchCat(m, filt.cat)) return false;
+    if (filt.type && m.type !== filt.type) return false;
+    if (filt.country && m.country !== filt.country) return false;
+    if (filt.tag && (!m.tags || !m.tags.includes(filt.tag))) return false;
+    if (filt.minRating) {
+      const r = ratingsAvg[m.id];
+      if (!r || r.avg < filt.minRating) return false;
+    }
+    if (filt.month && m.date) {
+      try {
+        const d = new Date(m.date);
+        const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+        if (key !== filt.month) return false;
+      } catch(e) { return false; }
+    }
+    if (q) {
+      const search = q.toLowerCase();
+      const haystack = (m.title + ' ' + m.country + ' ' + (m.desc||'') + ' ' + (CAT_LABELS[m.cat]||'') + ' ' + (m.brand||'') + ' ' + (m.tags||[]).join(' ')).toLowerCase();
+      if (!haystack.includes(search)) return false;
+    }
+    return true;
+  });
+}
+
+function renderGrid() {
+  const g = document.getElementById('grid');
+  const items = getFiltered();
+  if (!items.length) {
+    g.innerHTML = '<div class="empty"><div class="empty-ico">&#9678;</div><div>Ничего не найдено</div><div style="font-size:12px;margin-top:6px">Попробуйте изменить фильтры</div></div>';
+    return;
+  }
+  g.innerHTML = items.map(m => {
+    const tc = `ct-${m.type === 'zip' ? 'zip' : m.type}`;
+    const bc = `b-${m.type === 'zip' ? 'zip' : m.type}`;
+    const flag = COUNTRY_FLAGS[m.country] || '🌐';
+    const catLabel = CAT_LABELS[m.cat] || m.cat;
+    const dateStr = formatDate(m.date);
+    const urlTrimmed = (m.url || '').trim();
+    const hasUrl = urlTrimmed.length > 0 && !urlTrimmed.includes('XXXX') && (urlTrimmed.startsWith('http') || urlTrimmed.startsWith('/'));
+    const displayCountry = (m.country === 'Tranio Capital' || m.country === 'Tranio Brokerage') ? 'Global' : m.country;
+    const displayFlag = COUNTRY_FLAGS[displayCountry] || '🌐';
+
+    const hasProfile = m.brief || m.sms || (m.tags && m.tags.length) || m.urlTeaser || m.urlOnepage;
+    const tagsHtml = (m.tags && m.tags.length) ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">${m.tags.map(t => `<span class="tag">${escHtml(t)}</span>`).join('')}</div>` : '';
+
+    const thumbUrl = getDriveThumb(m.url) || getDriveThumb(m.urlTeaser) || '';
+
+    return `<div class="card" onclick="openProfile(${m.id})" data-id="${m.id}">
+      <div class="c-thumb ${thumbUrl ? '' : tc}">
+        ${m.isNew ? '<span class="c-new">Новое</span>' : ''}
+        ${thumbUrl ? `<img class="c-thumb-img" src="${thumbUrl}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${m.ico}'}))">` : `<span>${m.ico}</span>`}
+        <span class="c-badge ${bc}">${TYPE_LABELS[m.type]||m.type}</span>
+      </div>
+      <div class="c-body">
+        <div class="c-cat">${catLabel}</div>
+        <div class="c-country">${displayFlag} ${displayCountry}</div>
+        <div class="c-title">${escHtml(m.title)}</div>
+        ${m.desc ? `<div class="c-desc">${escHtml(m.desc)}</div>` : ''}
+        ${tagsHtml}
+        <div class="c-meta"><span>${m.size || ''}</span><span>${dlCounts[m.id] ? '&#11015; '+dlCounts[m.id] : ''} ${dateStr}</span></div>
+        ${hasUrl
+          ? `<a class="btn-dl" href="${escHtml(urlTrimmed)}" target="_blank" rel="noopener" onclick="event.stopPropagation();trackDl(${m.id})">&#11015; Открыть файл</a>`
+          : `<button class="btn-dl" onclick="event.stopPropagation();download(${m.id},this)">&#11015; Скачать</button>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  if (d.includes('.')) return d;
+  try {
+    const dt = new Date(d);
+    const months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+    return dt.getDate() + ' ' + months[dt.getMonth()];
+  } catch(e) { return d; }
+}
+
+function getDriveThumb(url) {
+  if (!url) return '';
+  const m = url.match(/drive\.google\.com\/file\/d\/([^/?]+)/);
+  return m ? `https://drive.google.com/thumbnail?id=${m[1]}&sz=w400` : '';
+}
+
+function escHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+let logPeriod = 'all';
+
+function filterLog(period, btn) {
+  logPeriod = period;
+  document.querySelectorAll('#act-filters .fbtn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderAct();
+}
+
+function renderAct() {
+  // Populate user filter dropdown
+  const userSelect = document.getElementById('log-user-filter');
+  const users = [...new Set(actLog.map(a => a.user))].sort();
+  const currentVal = userSelect.value;
+  userSelect.innerHTML = '<option value="">Все</option>' + users.map(u => `<option value="${escHtml(u)}">${escHtml(u)}</option>`).join('');
+  userSelect.value = currentVal;
+
+  const now = new Date();
+  const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+  const monthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
+  const selectedUser = userSelect.value;
+
+  const selectedAction = document.getElementById('log-action-filter').value;
+
+  const filtered = actLog.filter(a => {
+    // Period filter
+    if (logPeriod !== 'all' && a.rawDate) {
+      const d = new Date(a.rawDate);
+      if (logPeriod === 'week' && d < weekAgo) return false;
+      if (logPeriod === 'month' && d < monthAgo) return false;
+    }
+    // User filter
+    if (selectedUser && a.user !== selectedUser) return false;
+    // Action filter
+    if (selectedAction && a.dept !== selectedAction) return false;
+    return true;
+  });
+
+  const ACTION_LABELS = { download: 'Скачивание', teaser: 'Тизер', onepage: '1-page', copy_sms: 'SMS скопирован', rating: 'Оценка' };
+  const ACTION_COLORS = { download: 'var(--accent)', teaser: '#E5A84B', onepage: '#8C50B4', copy_sms: '#34B78F', rating: '#E5A84B' };
+
+  document.getElementById('act-body').innerHTML = filtered.length
+    ? filtered.map(a => {
+      const actionLabel = ACTION_LABELS[a.dept] || a.dept || 'Скачивание';
+      const actionColor = ACTION_COLORS[a.dept] || 'var(--accent)';
+      const ratingInfo = a.fileId && ratingsAvg[a.fileId] ? `${ratingsAvg[a.fileId].avg.toFixed(1)} ★` : '';
+      return `<tr>
+      <td><span style="color:var(--accent)">&#9672;</span> ${escHtml(a.file)}</td>
+      <td>${escHtml(a.user)}</td>
+      <td style="color:var(--text-tertiary)">${a.time}</td>
+      <td><span class="tag" style="background:${actionColor}15;color:${actionColor}">${actionLabel}</span></td>
+      <td style="color:var(--text-tertiary);font-size:11px">${ratingInfo}</td>
+    </tr>`;}).join('')
+    : '<tr><td colspan="5" style="text-align:center;color:var(--text-tertiary);padding:24px">Нет записей за выбранный период</td></tr>';
+}
+
+// =============================
+// ACTIONS
+// =============================
+function download(id, btn) {
+  const m = MATS.find(x => x.id === id);
+  if (!m) return;
+  incrementDlCount(id);
+  saveLogEntry(id, m.title, 'download');
+  actLog.unshift({ file: m.title, user: curUser ? curUser.name : '?', time: formatTimestamp(new Date().toISOString()), rawDate: new Date().toISOString(), dept: 'download' });
+  btn.textContent = '✓ Скачано';
+  btn.classList.add('done');
+  setTimeout(() => { btn.innerHTML = '&#11015; Скачать'; btn.classList.remove('done'); }, 2000);
+  updateStats();
+  renderGrid();
+  showToast('Скачан: ' + m.title);
+}
+
+// =============================
+// MATERIAL PROFILE
+// =============================
+function openProfile(id) {
+  const m = MATS.find(x => x.id === id);
+  if (!m) return;
+  const tc = `ct-${m.type === 'zip' ? 'zip' : m.type}`;
+  const flag = COUNTRY_FLAGS[m.country] || '🌐';
+  const catLabel = CAT_LABELS[m.cat] || m.cat;
+  const dateStr = formatDate(m.date);
+  const urlTrimmed = (m.url || '').trim();
+  const hasUrl = urlTrimmed.length > 0 && !urlTrimmed.includes('XXXX') && (urlTrimmed.startsWith('http') || urlTrimmed.startsWith('/'));
+
+  const modalThumbUrl = getDriveThumb(m.url) || getDriveThumb(m.urlTeaser) || '';
+  const modalThumb = document.getElementById('modal-thumb');
+  if (modalThumbUrl) {
+    modalThumb.className = 'modal-thumb';
+    modalThumb.style.height = '160px';
+    modalThumb.innerHTML = `<img class="c-thumb-img" src="${modalThumbUrl}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${m.ico}'}))">`;
+  } else {
+    modalThumb.className = 'modal-thumb ' + tc;
+    modalThumb.style.height = '80px';
+    modalThumb.innerHTML = `<span>${m.ico}</span>`;
+  }
+
+  let html = `<div class="modal-cat">${catLabel}</div>`;
+  html += `<div class="modal-title">${escHtml(m.title)}</div>`;
+  if (m.desc) html += `<div class="modal-desc">${escHtml(m.desc)}</div>`;
+
+  // Tags
+  if (m.tags && m.tags.length) {
+    html += `<div class="modal-tags">${m.tags.map(t => `<span class="modal-tag">${escHtml(t)}</span>`).join('')}</div>`;
+  }
+
+  // Meta
+  html += `<div class="modal-meta">`;
+  html += `<span>${flag} ${m.country}</span>`;
+  if (m.size) html += `<span>${m.size}</span>`;
+  if (dateStr) html += `<span>${dateStr}</span>`;
+  if (dlCounts[m.id]) html += `<span>&#11015; ${dlCounts[m.id]} скачиваний</span>`;
+  html += `</div>`;
+
+  // Rating
+  html += `<div class="modal-rating" id="modal-stars"></div>`;
+
+  // Brief
+  if (m.brief) {
+    html += `<div class="modal-section">`;
+    html += `<div class="modal-section-title">&#128203; Бриф для сейлзов</div>`;
+    html += `<div class="modal-brief">${escHtml(m.brief)}</div>`;
+    html += `</div>`;
+  }
+
+  // SMS template
+  if (m.sms) {
+    html += `<div class="modal-section">`;
+    html += `<div class="modal-section-title">&#128172; Шаблон сообщения</div>`;
+    html += `<div class="modal-sms"><button class="modal-sms-copy" onclick="copySms(${m.id})">Копировать</button>${escHtml(m.sms)}</div>`;
+    html += `</div>`;
+  }
+
+  // Download buttons
+  html += `<div class="modal-btns">`;
+  if (hasUrl) {
+    html += `<a class="btn-dl" href="${escHtml(urlTrimmed)}" target="_blank" rel="noopener" onclick="trackDl(${m.id})">&#11015; Скачать полную версию</a>`;
+  } else {
+    html += `<button class="btn-dl" onclick="download(${m.id},this)">&#11015; Скачать</button>`;
+  }
+  if (m.urlTeaser) {
+    html += `<a class="modal-link" href="${escHtml(m.urlTeaser)}" target="_blank" rel="noopener" onclick="trackDl(${m.id},'teaser')">&#128196; Скачать тизер</a>`;
+  }
+  if (m.urlOnepage) {
+    html += `<a class="modal-link" href="${escHtml(m.urlOnepage)}" target="_blank" rel="noopener" onclick="trackDl(${m.id},'onepage')">&#128203; Скачать 1-page</a>`;
+  }
+  html += `</div>`;
+
+  // Share link
+  const shareUrl = location.origin + location.pathname + '#m-' + m.id;
+  html += `<div class="modal-share">`;
+  html += `<div class="modal-share-link">${shareUrl}</div>`;
+  html += `<button class="modal-share-btn" onclick="copyLink(${m.id})">Копировать ссылку</button>`;
+  html += `</div>`;
+
+  document.getElementById('modal-body').innerHTML = html;
+  renderStars(document.getElementById('modal-stars'), m.id);
+  document.getElementById('modal-overlay').classList.add('open');
+  history.replaceState(null, '', '#m-' + m.id);
+}
+
+function closeProfile() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  history.replaceState(null, '', location.pathname);
+}
+
+function copySms(id) {
+  const m = MATS.find(x => x.id === id);
+  if (m && m.sms) {
+    navigator.clipboard.writeText(m.sms).then(() => {
+      showToast('Шаблон скопирован');
+      saveLogEntry(id, m.title, 'copy_sms');
+      actLog.unshift({ file: m.title + ' (SMS)', user: curUser ? curUser.name : '?', time: formatTimestamp(new Date().toISOString()), rawDate: new Date().toISOString(), dept: 'copy_sms' });
+    });
+  }
+}
+
+function copyLink(id) {
+  const url = location.origin + location.pathname + '#m-' + id;
+  navigator.clipboard.writeText(url).then(() => showToast('Ссылка скопирована'));
+}
+
+function checkHash() {
+  const h = location.hash;
+  if (h && h.startsWith('#m-')) {
+    const id = parseInt(h.slice(3));
+    if (id) openProfile(id);
+  }
+}
+window.addEventListener('hashchange', checkHash);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProfile(); });
+
+function trackDl(id, type) {
+  const m = MATS.find(x => x.id === id);
+  if (!m) return;
+  const action = type || 'download';
+  const label = type ? m.title + ' (' + type + ')' : m.title;
+  incrementDlCount(id);
+  saveLogEntry(id, m.title, action);
+  actLog.unshift({ file: label, user: curUser ? curUser.name : '?', time: formatTimestamp(new Date().toISOString()), rawDate: new Date().toISOString(), dept: action });
+  updateStats();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('t-msg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// =============================
+// FILTERS
+// =============================
+function filterBrand(brand, el) {
+  filt.brand = filt.brand === brand ? null : brand;
+  filt.cat = 'all';
+  filt.type = null;
+  q = '';
+  document.getElementById('srch').value = '';
+  document.querySelectorAll('.s-item').forEach(e => e.classList.remove('active'));
+  if (filt.brand) {
+    el.classList.add('active');
+    document.getElementById('v-title').textContent = brand;
+  } else {
+    document.querySelector('.s-item[data-cat="all"]').classList.add('active');
+    document.getElementById('v-title').textContent = 'Все материалы';
+  }
+  document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+  showMat();
+  renderGrid();
+  closeSidebar();
+}
+
+function filterCat(cat, el) {
+  filt.cat = cat;
+  filt.brand = null;
+  filt.type = null;
+  q = '';
+  document.getElementById('srch').value = '';
+  document.querySelectorAll('.s-item').forEach(e => e.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+  const info = CATEGORIES[cat] || {};
+  document.getElementById('v-title').textContent = info.label || cat;
+  showMat();
+  renderGrid();
+  closeSidebar();
+}
+
+function filterCountry(country, btn) {
+  if (filt.country === country) {
+    filt.country = null;
+    btn.classList.remove('active');
+  } else {
+    filt.country = country;
+    document.querySelectorAll('#country-filters .country-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  renderGrid();
+}
+
+function filterMonth(month, btn) {
+  if (filt.month === month) {
+    filt.month = null;
+    btn.classList.remove('active');
+  } else {
+    filt.month = month;
+    document.querySelectorAll('#month-filters .country-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  renderGrid();
+}
+
+function filterType(type, btn) {
+  filt.type = filt.type === type ? null : type;
+  document.querySelectorAll('.filter-row .fbtn').forEach(b => b.classList.remove('active'));
+  if (filt.type) btn.classList.add('active');
+  renderGrid();
+}
+
+function resetFilters() {
+  filt = { cat: 'all', type: null, country: null, brand: null, month: null, tag: null, minRating: null };
+  q = '';
+  document.getElementById('srch').value = '';
+  document.querySelectorAll('.s-item').forEach(e => e.classList.remove('active'));
+  document.querySelector('.s-item[data-cat="all"]').classList.add('active');
+  document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.country-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('v-title').textContent = 'Все материалы';
+  renderGrid();
+}
+
+function doSearch() {
+  q = document.getElementById('srch').value.toLowerCase();
+  renderGrid();
+}
+
+// =============================
+// NAVIGATION
+// =============================
+function hideAllViews() {
+  document.getElementById('mat-view').style.display = 'none';
+  document.getElementById('act-view').style.display = 'none';
+  document.getElementById('tg-view').style.display = 'none';
+}
+function showMat() {
+  hideAllViews();
+  document.getElementById('mat-view').style.display = 'block';
+  closeSidebar();
+}
+function showAct() {
+  if (!isAdmin()) return;
+  hideAllViews();
+  document.getElementById('act-view').style.display = 'block';
+  renderAct();
+  closeSidebar();
+}
+let postsLoaded = false;
+let allPosts = [];
+
+async function loadPosts() {
+  if (postsLoaded) return;
+  try {
+    const resp = await fetch('/api/posts');
+    const data = await resp.json();
+    allPosts = data.posts || [];
+    postsLoaded = true;
+    buildPostsTabs();
+    renderPosts(allPosts);
+  } catch (e) {
+    document.getElementById('posts-grid').innerHTML = '<div class="posts-loading">Не удалось загрузить посты</div>';
+  }
+}
+
+function buildPostsTabs() {
+  const tabs = document.getElementById('posts-tabs');
+  const channels = [...new Set(allPosts.map(p => p.channel))];
+  const channelMap = {};
+  allPosts.forEach(p => { channelMap[p.channel] = { name: p.channelName, flag: p.flag }; });
+  let html = '<button class="fbtn active" onclick="filterPosts(null,this)">Все</button>';
+  channels.forEach(ch => {
+    const info = channelMap[ch];
+    html += `<button class="fbtn" onclick="filterPosts('${ch}',this)">${info.flag} ${info.name}</button>`;
+  });
+  tabs.innerHTML = html;
+}
+
+function filterPosts(channel, btn) {
+  document.querySelectorAll('#posts-tabs .fbtn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const filtered = channel ? allPosts.filter(p => p.channel === channel) : allPosts;
+  renderPosts(filtered);
+}
+
+function renderPosts(posts) {
+  const grid = document.getElementById('posts-grid');
+  if (!posts.length) {
+    grid.innerHTML = '<div class="posts-loading">Нет постов</div>';
+    return;
+  }
+  grid.innerHTML = posts.map(p => {
+    const d = p.date ? new Date(p.date) : null;
+    const dateStr = d ? d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+    return `<div class="post-card">
+      <div class="post-head">
+        <span class="post-channel">${p.flag} ${p.channelName}</span>
+        <span class="post-date">${dateStr}</span>
+      </div>
+      <div class="post-text">${p.text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+      <div class="post-footer">
+        <span class="post-views">${p.views ? '👁 ' + p.views : ''}</span>
+        <a href="${p.link}" target="_blank" rel="noopener" class="post-link">Читать →</a>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showTg() {
+  hideAllViews();
+  document.getElementById('tg-view').style.display = 'block';
+  loadPosts();
+  closeSidebar();
+}
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('visible');
+  document.getElementById('ham').classList.toggle('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('visible');
+  document.getElementById('ham').classList.remove('open');
+}
+function setB(id) {
+  document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function focusSrch() {
+  showMat();
+  setTimeout(() => document.getElementById('srch').focus(), 100);
+}
+</script>
+</body>
+</html>
