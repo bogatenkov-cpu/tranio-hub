@@ -1,8 +1,20 @@
 /* global React, ReactDOM */
-const { useState, useMemo, useEffect, useRef } = React;
-const HUB = window.HUB_DATA;
+const { useState, useMemo, useEffect, useRef, useCallback } = React;
+const API = window.HUB_API;
+const sb  = API.sb;
 
-// ---------- ICONS (tiny inline SVG, monochrome) ----------
+// ============================================================
+// Auth recovery detection — must happen synchronously on load
+// ============================================================
+let isPasswordRecovery = (function detectRecovery() {
+  const hash = window.location.hash || '';
+  const search = window.location.search || '';
+  return /[#?&]type=recovery/.test(hash) || /[?&]type=recovery/.test(search);
+})();
+
+// ============================================================
+// Icons (tiny inline SVG, monochrome)
+// ============================================================
 const Ic = {
   doc:    (p) => (<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2" {...p}><path d="M3 1.5h6l4 4V14a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 14V2a.5.5 0 0 1 0-.5z"/><path d="M9 1.5V5.5h4"/></svg>),
   grid:   (p) => (<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2" {...p}><rect x="2" y="2" width="5" height="5"/><rect x="9" y="2" width="5" height="5"/><rect x="2" y="9" width="5" height="5"/><rect x="9" y="9" width="5" height="5"/></svg>),
@@ -24,7 +36,9 @@ const Ic = {
   copy:   (p) => (<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2" {...p}><rect x="5" y="5" width="9" height="9"/><path d="M3 11V2h9"/></svg>),
 };
 
-// ---------- Stars ----------
+// ============================================================
+// Stars / CountryMark
+// ============================================================
 const Stars = ({ value, ratings }) => {
   const v = value || 0;
   return (
@@ -36,10 +50,8 @@ const Stars = ({ value, ratings }) => {
   );
 };
 
-// ---------- Country marker (small flag + ISO mono code) ----------
 const CountryMark = ({ code }) => {
-  const c = HUB.COUNTRIES[code];
-  if (!c) return null;
+  const c = API.COUNTRIES[code] || { flag: '🏳', label: code };
   return (
     <span className="country">
       <span className="flag">{c.flag}</span>
@@ -48,8 +60,24 @@ const CountryMark = ({ code }) => {
   );
 };
 
-// ---------- Sidebar ----------
-const Sidebar = ({ section, sub, onNav, brand }) => {
+// ============================================================
+// Toast (lightweight)
+// ============================================================
+const Toast = ({ msg }) => {
+  if (!msg) return null;
+  return (
+    <div style={{
+      position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+      background: 'var(--ink)', color: 'var(--surface)', padding: '10px 18px',
+      borderRadius: 6, fontSize: 13, zIndex: 1000, boxShadow: '0 8px 24px rgba(0,0,0,0.18)'
+    }}>{msg}</div>
+  );
+};
+
+// ============================================================
+// Sidebar
+// ============================================================
+const Sidebar = ({ section, sub, brand, onNav, cats, brands, syncedAt }) => {
   const navBrand = (id, label, count) => (
     <button key={id} className={`nav-item ${section === 'brand' && brand === id ? 'active' : ''}`}
       onClick={() => onNav({ section: 'brand', brand: id })}>
@@ -69,17 +97,17 @@ const Sidebar = ({ section, sub, onNav, brand }) => {
     <aside className="sidebar">
       <div className="brand">
         <span className="mark">tranio<span className="dot">.</span>hub</span>
-        <span className="env">v0.4</span>
+        <span className="env">v1</span>
       </div>
 
       <div className="nav-group">
         <div className="nav-label">Бренд</div>
-        {HUB.BRANDS.map(b => navBrand(b.id, b.label, b.count))}
+        {brands.map(b => navBrand(b.id, b.label, b.count))}
       </div>
 
       <div className="nav-group">
         <div className="nav-label">Категории</div>
-        {HUB.CATS.map(c => (
+        {cats.map(c => (
           <React.Fragment key={c.id}>
             <button className={`nav-item ${section === 'cat' && sub?.cat === c.id && !sub?.sub ? 'active' : ''}`}
               onClick={() => onNav({ section: 'cat', sub: { cat: c.id } })}>
@@ -113,14 +141,16 @@ const Sidebar = ({ section, sub, onNav, brand }) => {
 
       <div className="sidebar-footer">
         <span className="live-dot"></span>
-        <span>LIVE · synced 14:32</span>
+        <span>LIVE{syncedAt ? ` · synced ${syncedAt}` : ''}</span>
       </div>
     </aside>
   );
 };
 
-// ---------- Topbar ----------
-const Topbar = ({ crumbs }) => (
+// ============================================================
+// Topbar
+// ============================================================
+const Topbar = ({ crumbs, userName, userIni, onLogout }) => (
   <header className="topbar">
     <div className="crumbs">
       {crumbs.map((c, i) => (
@@ -131,20 +161,17 @@ const Topbar = ({ crumbs }) => (
       ))}
     </div>
     <div className="spacer" />
-    <button className="search-mini">
-      <Ic.search />
-      <span>Поиск по хабу</span>
-      <kbd>⌘K</kbd>
-    </button>
     <div className="user-chip">
-      <span className="avatar">ЕБ</span>
-      <span>Евгений Богатенков</span>
+      <span className="avatar">{userIni}</span>
+      <span>{userName}</span>
     </div>
-    <button className="btn-ghost">Выйти</button>
+    <button className="btn-ghost" onClick={onLogout}>Выйти</button>
   </header>
 );
 
-// ---------- Stat strip ----------
+// ============================================================
+// Stat strip
+// ============================================================
 const StatStrip = ({ items }) => (
   <div className="stats">
     {items.map((s, i) => (
@@ -156,12 +183,23 @@ const StatStrip = ({ items }) => (
   </div>
 );
 
-// ---------- Filter rail ----------
-const FilterRail = ({ filters, onChange, available }) => {
-  const COUNTRY_KEYS = ["Bali","Cambodia","Cyprus","Global","Greece","Oman","Russia","Spain","SaoTome","Thailand","UAE"];
-  const MONTHS = ["Апрель 2026","Март 2026","Февраль 2026","Январь 2026","Декабрь 2025","Ноябрь 2025","Август 2025","Июль 2025","Июнь 2025"];
-  const TYPES = ["PDF","PPTX","Image","Video","DOC","HTML"];
-  const TAGS = ["ВНЖ","ВНЖ, Кейс","Кейс","Налоги"];
+// ============================================================
+// Filter rail
+// ============================================================
+const FilterRail = ({ filters, onChange, materials }) => {
+  // Derive available chips from real materials so we don't show empty chips
+  const COUNTRY_KEYS = useMemo(() => {
+    const set = new Set(materials.map(m => m.country).filter(Boolean));
+    return Array.from(set).sort();
+  }, [materials]);
+  const TYPES = useMemo(() => {
+    const set = new Set(materials.map(m => m.type).filter(Boolean));
+    return Array.from(set);
+  }, [materials]);
+  const TAGS = useMemo(() => {
+    const set = new Set(materials.flatMap(m => m.tags || []));
+    return Array.from(set).slice(0, 16);
+  }, [materials]);
 
   const toggle = (key, val) => {
     const arr = filters[key] || [];
@@ -171,7 +209,7 @@ const FilterRail = ({ filters, onChange, available }) => {
   const setRating = (val) => {
     onChange({ ...filters, rating: filters.rating === val ? null : val });
   };
-  const reset = () => onChange({ q: "", country: [], month: [], type: [], tag: [], rating: null });
+  const reset = () => onChange({ q: "", country: [], type: [], tag: [], rating: null });
 
   return (
     <div className="filter-rail">
@@ -180,29 +218,17 @@ const FilterRail = ({ filters, onChange, available }) => {
         <input value={filters.q || ""}
           onChange={e => onChange({ ...filters, q: e.target.value })}
           placeholder="Поиск по названию, стране или описанию…" />
-        <span className="hint">⌘K</span>
       </div>
       <div className="filter-row">
         <span className="label">Страна</span>
         <div className="chips">
           {COUNTRY_KEYS.map(k => {
-            const c = HUB.COUNTRIES[k];
+            const c = API.COUNTRIES[k] || { flag: '🏳', label: k };
             const active = (filters.country || []).includes(k);
             return (
               <button key={k} className={`chip ${active ? 'active' : ''}`} onClick={() => toggle('country', k)}>
                 <span className="flag">{c.flag}</span><span>{c.label}</span>
               </button>
-            );
-          })}
-        </div>
-      </div>
-      <div className="filter-row">
-        <span className="label">Месяц</span>
-        <div className="chips">
-          {MONTHS.map(m => {
-            const active = (filters.month || []).includes(m);
-            return (
-              <button key={m} className={`chip ${active ? 'active' : ''}`} onClick={() => toggle('month', m)}>{m}</button>
             );
           })}
         </div>
@@ -219,17 +245,19 @@ const FilterRail = ({ filters, onChange, available }) => {
           <button className="chip reset" onClick={reset}>Сбросить</button>
         </div>
       </div>
-      <div className="filter-row">
-        <span className="label">Теги</span>
-        <div className="chips">
-          {TAGS.map(t => {
-            const active = (filters.tag || []).includes(t);
-            return (
-              <button key={t} className={`chip ${active ? 'active' : ''}`} onClick={() => toggle('tag', t)}>{t}</button>
-            );
-          })}
+      {TAGS.length > 0 && (
+        <div className="filter-row">
+          <span className="label">Теги</span>
+          <div className="chips">
+            {TAGS.map(t => {
+              const active = (filters.tag || []).includes(t);
+              return (
+                <button key={t} className={`chip ${active ? 'active' : ''}`} onClick={() => toggle('tag', t)}>{t}</button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
       <div className="filter-row">
         <span className="label">Рейтинг</span>
         <div className="chips">
@@ -243,7 +271,9 @@ const FilterRail = ({ filters, onChange, available }) => {
   );
 };
 
-// ---------- Card ----------
+// ============================================================
+// Card
+// ============================================================
 const Card = ({ m, onOpen }) => {
   const isDark = m.cover === 'dark';
   return (
@@ -283,15 +313,28 @@ const Card = ({ m, onOpen }) => {
   );
 };
 
-// ---------- Modal ----------
-const Modal = ({ m, onClose }) => {
+// ============================================================
+// Modal
+// ============================================================
+const Modal = ({ m, onClose, onDownload, onRate, myRating }) => {
   const [copied, setCopied] = useState(false);
   const [tplCopied, setTplCopied] = useState(false);
-  const [rating, setRating] = useState(m.rating || 0);
+  const [rating, setRating] = useState(myRating || 0);
   const [hover, setHover] = useState(0);
+  useEffect(() => { setRating(myRating || 0); }, [myRating]);
   if (!m) return null;
   const isDark = m.cover === 'dark';
   const url = `https://tranio-hub.vercel.app/#m-${m.id}`;
+
+  const handleRate = (i) => {
+    setRating(i);
+    onRate?.(m, i);
+  };
+
+  const handleDownload = () => {
+    onDownload?.(m);
+    if (m.url) window.open(m.url, '_blank', 'noopener');
+  };
 
   return (
     <div className="modal-back" onClick={onClose}>
@@ -337,7 +380,7 @@ const Modal = ({ m, onClose }) => {
                     className={`st ${i <= (hover || rating) ? 'filled' : ''}`}
                     onMouseEnter={() => setHover(i)}
                     onMouseLeave={() => setHover(0)}
-                    onClick={() => setRating(i)}
+                    onClick={() => handleRate(i)}
                   >★</span>
                 ))}
               </span>
@@ -358,9 +401,11 @@ const Modal = ({ m, onClose }) => {
             </>
           )}
 
-          <div className="dl-row">
-            <button className="dl-btn"><span className="icon"><Ic.dl /></span> Скачать полную версию</button>
-          </div>
+          {m.url && (
+            <div className="dl-row">
+              <button className="dl-btn" onClick={handleDownload}><span className="icon"><Ic.dl /></span> Скачать полную версию</button>
+            </div>
+          )}
           <div className="share-row">
             <span className="url">{url}</span>
             <button className="btn accent" onClick={() => {
@@ -374,15 +419,17 @@ const Modal = ({ m, onClose }) => {
   );
 };
 
-// ---------- Materials view ----------
-const MaterialsView = ({ title, lede, materials, statOverride, onOpen }) => {
-  const [filters, setFilters] = useState({ q: "", country: [], month: [], type: [], tag: [], rating: null });
+// ============================================================
+// Materials view (catalog)
+// ============================================================
+const MaterialsView = ({ title, lede, materials, allMaterials, onOpen }) => {
+  const [filters, setFilters] = useState({ q: "", country: [], type: [], tag: [], rating: null });
 
   const filtered = useMemo(() => {
     return materials.filter(m => {
       if (filters.q) {
         const q = filters.q.toLowerCase();
-        if (!(m.title.toLowerCase().includes(q) || (m.desc||"").toLowerCase().includes(q) || (HUB.COUNTRIES[m.country]?.label||"").toLowerCase().includes(q))) return false;
+        if (!(m.title.toLowerCase().includes(q) || (m.desc||"").toLowerCase().includes(q) || (API.COUNTRIES[m.country]?.label||"").toLowerCase().includes(q))) return false;
       }
       if (filters.country?.length && !filters.country.includes(m.country)) return false;
       if (filters.type?.length && !filters.type.includes(m.type)) return false;
@@ -394,11 +441,11 @@ const MaterialsView = ({ title, lede, materials, statOverride, onOpen }) => {
     });
   }, [materials, filters]);
 
-  const stats = statOverride || [
-    { num: 120, lbl: "Файлов" },
-    { num: 262, lbl: "Скачиваний" },
-    { num: 6, lbl: "Категорий" },
-    { num: 44, lbl: "Новинок" },
+  const stats = [
+    { num: materials.length, lbl: "Файлов" },
+    { num: materials.reduce((s, m) => s + (m.downloads || 0), 0), lbl: "Скачиваний" },
+    { num: new Set(materials.map(m => m.cat)).size, lbl: "Категорий" },
+    { num: materials.filter(m => m.isNew).length, lbl: "Новинок" },
   ];
 
   return (
@@ -408,13 +455,9 @@ const MaterialsView = ({ title, lede, materials, statOverride, onOpen }) => {
           <h1>{title}</h1>
           <div className="lede">{lede}</div>
         </div>
-        <div className="actions">
-          <button className="btn secondary"><Ic.dl /> Экспорт</button>
-          <button className="btn">+ Загрузить материал</button>
-        </div>
       </div>
       <StatStrip items={stats} />
-      <FilterRail filters={filters} onChange={setFilters} />
+      <FilterRail filters={filters} onChange={setFilters} materials={allMaterials || materials} />
       {filtered.length === 0 ? (
         <div className="empty">
           <div className="glyph">— EMPTY STATE —</div>
@@ -430,11 +473,34 @@ const MaterialsView = ({ title, lede, materials, statOverride, onOpen }) => {
   );
 };
 
-// ---------- Telegram view ----------
+// ============================================================
+// Telegram view — fetched live from /api/posts
+// ============================================================
 const TgView = () => {
+  const [posts, setPosts] = useState(null);
   const [active, setActive] = useState('all');
-  const channels = ['all', ...Array.from(new Set(HUB.TG.map(t => t.ch)))];
-  const list = active === 'all' ? HUB.TG : HUB.TG.filter(t => t.ch === active);
+
+  useEffect(() => {
+    let cancelled = false;
+    API.loadTgPosts().then(p => { if (!cancelled) setPosts(p); });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (posts === null) {
+    return (
+      <>
+        <div className="page-head">
+          <div>
+            <h1>Telegram-каналы Tranio</h1>
+            <div className="lede">Загружаем последние посты из всех каналов…</div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  const channels = ['all', ...Array.from(new Set(posts.map(t => t.ch))).filter(Boolean)];
+  const list = active === 'all' ? posts : posts.filter(t => t.ch === active);
   const labelFor = (c) => c === 'all' ? 'Все' : c;
 
   return (
@@ -443,9 +509,6 @@ const TgView = () => {
         <div>
           <h1>Telegram-каналы Tranio</h1>
           <div className="lede">Последние посты и все каналы компании</div>
-        </div>
-        <div className="actions">
-          <button className="btn secondary"><Ic.link /> Открыть в Telegram</button>
         </div>
       </div>
 
@@ -463,42 +526,86 @@ const TgView = () => {
         </div>
       </div>
 
-      <div className="tg-grid">
-        {list.map((t, i) => (
-          <div key={i} className="tg-card">
-            <div className="tg-head">
-              <span className="tg-channel">{t.ch}</span>
-              <span>{t.time}</span>
+      {list.length === 0 ? (
+        <div className="empty">
+          <div className="glyph">— EMPTY STATE —</div>
+          <h3>Постов пока нет</h3>
+          <p>Не удалось получить публикации из канала. Попробуйте позже.</p>
+        </div>
+      ) : (
+        <div className="tg-grid">
+          {list.map((t, i) => (
+            <div key={i} className="tg-card">
+              <div className="tg-head">
+                <span className="tg-channel">{t.ch}</span>
+                <span>{t.time}</span>
+              </div>
+              <h3 className="tg-title">{t.title}</h3>
+              <p className="tg-snip">{t.snip}</p>
+              <div className="tg-foot">
+                <span>↗ {t.views}</span>
+                {t.link
+                  ? <a className="read" href={t.link} target="_blank" rel="noreferrer">Читать →</a>
+                  : <span className="read">Читать →</span>}
+              </div>
             </div>
-            <h3 className="tg-title">{t.title}</h3>
-            <p className="tg-snip">{t.snip}</p>
-            <div className="tg-foot">
-              <span>↗ {t.views}</span>
-              <span className="read">Читать →</span>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </>
   );
 };
 
-// ---------- Log view ----------
-const LogView = () => {
+// ============================================================
+// Activity log view — reads from Supabase activity_log (read-only)
+// ============================================================
+const LogView = ({ refreshKey }) => {
+  const [log, setLog] = useState(null);
   const [period, setPeriod] = useState('Все');
-  const [action, setAction] = useState('Все');
-  const [user, setUser] = useState('Все');
+  const [actionFilter, setActionFilter] = useState('Все');
+  const [userFilter, setUserFilter] = useState('Все');
+
+  useEffect(() => {
+    let cancelled = false;
+    API.loadActivityLog().then(l => { if (!cancelled) setLog(l); });
+    return () => { cancelled = true; };
+  }, [refreshKey]);
+
+  if (log === null) {
+    return (
+      <>
+        <div className="page-head">
+          <div>
+            <h1>Лог скачиваний</h1>
+            <div className="lede">Загружаем записи из базы…</div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  const userOptions = ['Все', ...Array.from(new Set(log.map(l => l.user).filter(Boolean))).sort()];
+  const actionOptions = ['Все', ...Array.from(new Set(log.map(l => l.action).filter(Boolean)))];
+
+  const now = new Date();
+  const filtered = log.filter(l => {
+    if (userFilter !== 'Все' && l.user !== userFilter) return false;
+    if (actionFilter !== 'Все' && l.action !== actionFilter) return false;
+    if (period !== 'Все' && l.raw?.created_at) {
+      const d = new Date(l.raw.created_at);
+      const diff = (now - d) / 86400000;
+      if (period === 'Неделя' && diff > 7) return false;
+      if (period === 'Месяц'  && diff > 31) return false;
+    }
+    return true;
+  });
 
   return (
     <>
       <div className="page-head">
         <div>
           <h1>Лог скачиваний</h1>
-          <div className="lede">Кто, когда и что скачал</div>
-        </div>
-        <div className="actions">
-          <button className="btn secondary"><Ic.back /> Назад</button>
-          <button className="btn"><Ic.dl /> Экспорт CSV</button>
+          <div className="lede">Кто, когда и что скачал — {log.length} записей в базе</div>
         </div>
       </div>
 
@@ -514,86 +621,437 @@ const LogView = () => {
         <div className="filter-row">
           <span className="label">Действие</span>
           <div className="chips">
-            {['Все','Скачивание','Просмотр'].map(p => (
-              <button key={p} className={`chip ${action === p ? 'active' : ''}`} onClick={() => setAction(p)}>{p}</button>
+            {actionOptions.map(p => (
+              <button key={p} className={`chip ${actionFilter === p ? 'active' : ''}`} onClick={() => setActionFilter(p)}>{p}</button>
             ))}
           </div>
         </div>
         <div className="filter-row">
           <span className="label">Сотрудник</span>
           <div className="chips">
-            {['Все','Наталья','Anastasia Shchepetova','Илья Шереметьев','Полина Фёдорова'].map(p => (
-              <button key={p} className={`chip ${user === p ? 'active' : ''}`} onClick={() => setUser(p)}>{p}</button>
+            {userOptions.map(p => (
+              <button key={p} className={`chip ${userFilter === p ? 'active' : ''}`} onClick={() => setUserFilter(p)}>{p}</button>
             ))}
           </div>
         </div>
       </div>
 
-      <table className="log-table">
-        <thead>
-          <tr>
-            <th style={{ width: '50%' }}>Файл</th>
-            <th>Пользователь</th>
-            <th>Время</th>
-            <th>Действие</th>
-            <th>Рейтинг</th>
-          </tr>
-        </thead>
-        <tbody>
-          {HUB.LOG.map((l, i) => (
-            <tr key={i}>
-              <td>
-                <div className="file-cell">
-                  <span className="ftype">{l.file.match(/Guide|smartphone|English/i) ? 'PDF' : 'PDF'}</span>
-                  <span>{l.file}</span>
-                </div>
-              </td>
-              <td className="who">{l.user}</td>
-              <td className="when">{l.when}</td>
-              <td><span className="action-link">{l.action}</span></td>
-              <td className="rate-num">{l.rating ? `${l.rating.toFixed(1)} ★` : '—'}</td>
+      {filtered.length === 0 ? (
+        <div className="empty">
+          <div className="glyph">— EMPTY STATE —</div>
+          <h3>Записей по фильтру нет</h3>
+          <p>Попробуйте сбросить фильтры.</p>
+        </div>
+      ) : (
+        <table className="log-table">
+          <thead>
+            <tr>
+              <th style={{ width: '50%' }}>Файл</th>
+              <th>Пользователь</th>
+              <th>Время</th>
+              <th>Действие</th>
+              <th>Рейтинг</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {filtered.map((l, i) => (
+              <tr key={i}>
+                <td>
+                  <div className="file-cell">
+                    <span className="ftype">{l.raw?.material_type || '—'}</span>
+                    <span>{l.file}</span>
+                  </div>
+                </td>
+                <td className="who">{l.user}</td>
+                <td className="when">{l.when}</td>
+                <td><span className="action-link">{l.action}</span></td>
+                <td className="rate-num">{l.rating ? `${l.rating.toFixed(1)} ★` : '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </>
   );
 };
 
-// ---------- App ----------
+// ============================================================
+// Auth screens
+// ============================================================
+const ADMIN_PREFIXES = ['bogatenkov', 'skorykh'];
+const isAdminUser = (user) => !!user && ADMIN_PREFIXES.some(p => (user.email || '').split('@')[0].toLowerCase() === p);
+
+const AuthShell = ({ children }) => (
+  <div className="login-page" data-screen-label="auth">
+    <div className="login-card">
+      <div className="login-brand">tranio<span className="dot">.</span>hub</div>
+      <div className="login-sub">маркетинговые материалы — только для команды</div>
+      {children}
+    </div>
+  </div>
+);
+
+const Login = ({ onSwitch, toast }) => {
+  const [email, setEmail] = useState('');
+  const [pass, setPass]   = useState('');
+  const [err, setErr]     = useState('');
+  const [busy, setBusy]   = useState(false);
+  const submit = async (e) => {
+    e.preventDefault();
+    setErr('');
+    if (!email || !pass) { setErr('Введите email и пароль'); return; }
+    setBusy(true);
+    try {
+      const { error } = await sb.auth.signInWithPassword({ email: email.trim().toLowerCase(), password: pass });
+      if (error) setErr(error.message);
+      // onAuthStateChange → SIGNED_IN handles the rest
+    } catch (ex) { setErr('Ошибка подключения'); }
+    finally { setBusy(false); }
+  };
+  return (
+    <form onSubmit={submit}>
+      <div className="field">
+        <label>Email</label>
+        <input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@tranio.com" />
+      </div>
+      <div className="field">
+        <label>Пароль</label>
+        <input type="password" autoComplete="current-password" value={pass} onChange={e => setPass(e.target.value)} placeholder="••••••••" />
+      </div>
+      {err && <div style={{ color: '#a8442a', fontSize: 12, marginTop: -6, marginBottom: 10 }}>{err}</div>}
+      <button className="btn" type="submit" disabled={busy}>{busy ? 'Входим…' : 'Войти →'}</button>
+      <div className="login-foot">
+        <a href="#" onClick={(e) => { e.preventDefault(); onSwitch('forgot'); }}>Забыли пароль?</a>
+        <span>Нет аккаунта? <a href="#" onClick={(e) => { e.preventDefault(); onSwitch('register'); }}>Зарегистрироваться</a></span>
+      </div>
+    </form>
+  );
+};
+
+const Register = ({ onSwitch }) => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [pass, setPass] = useState('');
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  const submit = async (e) => {
+    e.preventDefault(); setErr('');
+    if (!name || !email || !pass) { setErr('Заполните все поля'); return; }
+    if (pass.length < 6) { setErr('Пароль — минимум 6 символов'); return; }
+    setBusy(true);
+    try {
+      const { data, error } = await sb.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password: pass,
+        options: { data: { name } }
+      });
+      if (error) { setErr(error.message); return; }
+      if (data.user && !data.session) setDone(true); // email confirmation enabled
+      // else SIGNED_IN event will take over
+    } catch (ex) { setErr('Ошибка подключения'); }
+    finally { setBusy(false); }
+  };
+  if (done) {
+    return (
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 32, marginBottom: 12 }}>✉</div>
+        <div style={{ fontSize: 14, color: 'var(--ink)', marginBottom: 8 }}>Проверьте почту</div>
+        <div style={{ fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.5 }}>
+          Мы отправили письмо с подтверждением. Откройте его, чтобы завершить регистрацию.
+        </div>
+        <div style={{ marginTop: 16 }}>
+          <a href="#" onClick={(e) => { e.preventDefault(); onSwitch('login'); }} style={{ color: 'var(--accent)' }}>Назад к входу</a>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <form onSubmit={submit}>
+      <div className="field">
+        <label>Имя</label>
+        <input type="text" autoComplete="name" value={name} onChange={e => setName(e.target.value)} placeholder="Иван Петров" />
+      </div>
+      <div className="field">
+        <label>Email</label>
+        <input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@tranio.com" />
+      </div>
+      <div className="field">
+        <label>Пароль (мин. 6 символов)</label>
+        <input type="password" autoComplete="new-password" value={pass} onChange={e => setPass(e.target.value)} placeholder="••••••••" />
+      </div>
+      {err && <div style={{ color: '#a8442a', fontSize: 12, marginTop: -6, marginBottom: 10 }}>{err}</div>}
+      <button className="btn" type="submit" disabled={busy}>{busy ? 'Создаём…' : 'Зарегистрироваться'}</button>
+      <div className="login-foot">
+        <span>Уже есть аккаунт? <a href="#" onClick={(e) => { e.preventDefault(); onSwitch('login'); }}>Войти</a></span>
+      </div>
+    </form>
+  );
+};
+
+const ForgotPass = ({ onSwitch }) => {
+  const [email, setEmail] = useState('');
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+  const submit = async (e) => {
+    e.preventDefault(); setErr('');
+    if (!email) { setErr('Введите email'); return; }
+    setBusy(true);
+    try {
+      const { error } = await sb.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+        redirectTo: window.location.origin + window.location.pathname,
+      });
+      if (error) { setErr(error.message); return; }
+      setSent(true);
+    } catch (ex) { setErr('Ошибка подключения'); }
+    finally { setBusy(false); }
+  };
+  if (sent) {
+    return (
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 32, marginBottom: 12 }}>✉</div>
+        <div style={{ fontSize: 14, color: 'var(--ink)', marginBottom: 8 }}>Проверьте почту</div>
+        <div style={{ fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.5 }}>
+          Мы отправили ссылку для сброса пароля. Откройте её, чтобы задать новый пароль.
+        </div>
+        <div style={{ marginTop: 16 }}>
+          <a href="#" onClick={(e) => { e.preventDefault(); onSwitch('login'); }} style={{ color: 'var(--accent)' }}>Назад к входу</a>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <form onSubmit={submit}>
+      <div className="field">
+        <label>Email</label>
+        <input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@tranio.com" />
+      </div>
+      {err && <div style={{ color: '#a8442a', fontSize: 12, marginTop: -6, marginBottom: 10 }}>{err}</div>}
+      <button className="btn" type="submit" disabled={busy}>{busy ? 'Отправляем…' : 'Отправить ссылку для сброса'}</button>
+      <div className="login-foot">
+        <a href="#" onClick={(e) => { e.preventDefault(); onSwitch('login'); }}>Назад к входу</a>
+      </div>
+    </form>
+  );
+};
+
+const NewPass = ({ onDone }) => {
+  const [pass, setPass] = useState('');
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const submit = async (e) => {
+    e.preventDefault(); setErr('');
+    if (!pass || pass.length < 6) { setErr('Минимум 6 символов'); return; }
+    setBusy(true);
+    try {
+      const { data, error } = await sb.auth.updateUser({ password: pass });
+      if (error) { setErr(error.message); return; }
+      // Recovery flow done — clean URL so refresh doesn't re-enter
+      isPasswordRecovery = false;
+      if (window.location.hash || window.location.search.includes('type=recovery')) {
+        history.replaceState(null, '', window.location.pathname);
+      }
+      onDone?.(data?.user);
+    } catch (ex) { setErr('Ошибка подключения'); }
+    finally { setBusy(false); }
+  };
+  return (
+    <form onSubmit={submit}>
+      <div style={{ fontSize: 14, color: 'var(--ink)', textAlign: 'center', marginBottom: 14 }}>Задайте новый пароль</div>
+      <div className="field">
+        <label>Новый пароль (мин. 6 символов)</label>
+        <input type="password" autoComplete="new-password" value={pass} onChange={e => setPass(e.target.value)} placeholder="••••••••" />
+      </div>
+      {err && <div style={{ color: '#a8442a', fontSize: 12, marginTop: -6, marginBottom: 10 }}>{err}</div>}
+      <button className="btn" type="submit" disabled={busy}>{busy ? 'Сохраняем…' : 'Сохранить новый пароль'}</button>
+    </form>
+  );
+};
+
+// ============================================================
+// App — top-level orchestrator
+// ============================================================
 const App = () => {
+  // Auth state
+  const [authReady, setAuthReady] = useState(false);
+  const [user, setUser] = useState(null); // null = logged out
+  const [authScreen, setAuthScreen] = useState('login'); // login | register | forgot | newpass
+  const [toast, setToast] = useState('');
+
+  // Data state
+  const [materials, setMaterials] = useState([]);
+  const [downloadCounts, setDownloadCounts] = useState({});
+  const [ratings, setRatings] = useState({ aggregate: {}, mine: {} });
+  const [dataLoading, setDataLoading] = useState(false);
+  const [logRefresh, setLogRefresh] = useState(0);
+  const [syncedAt, setSyncedAt] = useState('');
+
+  // Navigation
   const [route, setRoute] = useState({ section: 'brand', brand: 'all' });
   const [openMaterial, setOpenMaterial] = useState(null);
-  const [logged, setLogged] = useState(true);
 
-  if (!logged) return <Login onLogin={() => setLogged(true)} />;
+  // Toast helper
+  const showToast = useCallback((msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 1800);
+  }, []);
 
-  const onNav = (r) => setRoute(r);
+  // ---- Auth bootstrap -------------------------------------------
+  useEffect(() => {
+    (async () => {
+      const { data: { session } } = await sb.auth.getSession();
+      if (session && isPasswordRecovery) {
+        setAuthScreen('newpass');
+        setAuthReady(true);
+      } else if (session) {
+        setUser(buildUser(session.user));
+        setAuthReady(true);
+      } else {
+        setAuthReady(true);
+      }
+    })();
 
+    const { data: { subscription } } = sb.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        isPasswordRecovery = true;
+        setAuthScreen('newpass');
+        setUser(null);
+        return;
+      }
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session && !isPasswordRecovery) {
+        setUser(buildUser(session.user));
+      }
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setMaterials([]);
+        isPasswordRecovery = false;
+        setAuthScreen('login');
+      }
+    });
+    return () => subscription?.unsubscribe();
+  }, []);
+
+  function buildUser(u) {
+    const meta = u.user_metadata || {};
+    const name = meta.name || (u.email || '').split('@')[0] || 'Пользователь';
+    const ini = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2) || '??';
+    return { id: u.id, email: u.email, name, ini, isAdmin: isAdminUser(u) };
+  }
+
+  // ---- Data loading (after sign-in) -----------------------------
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    setDataLoading(true);
+    (async () => {
+      const [mats, dlCounts, rt] = await Promise.all([
+        API.loadMaterials(),
+        API.loadDownloadCounts(),
+        API.loadRatings(user.id),
+      ]);
+      if (cancelled) return;
+      setMaterials(mats);
+      setDownloadCounts(dlCounts);
+      setRatings(rt);
+      const now = new Date();
+      setSyncedAt(`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`);
+      setDataLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  // Apply enrichments (download counts + ratings) lazily
+  const enrichedMaterials = useMemo(
+    () => API.applyEnrichments(materials, downloadCounts, ratings),
+    [materials, downloadCounts, ratings]
+  );
+  const { CATS, BRANDS } = useMemo(
+    () => API.deriveCatsAndBrands(enrichedMaterials),
+    [enrichedMaterials]
+  );
+
+  // ---- Actions ---------------------------------------------------
+  const handleLogout = async () => {
+    try { await sb.auth.signOut(); } catch (e) { /* ignore */ }
+  };
+
+  const handleDownload = async (m) => {
+    const next = await API.bumpDownloadCount(m.id, m.downloads);
+    setDownloadCounts(prev => ({ ...prev, [m.id]: next }));
+    await API.logActivity({
+      user, materialId: m.id, materialTitle: m.title, actionType: 'download',
+    });
+    showToast('Скачивание зарегистрировано');
+    setLogRefresh(k => k + 1);
+  };
+
+  const handleRate = async (m, score) => {
+    await API.setRating(user.id, m.id, score);
+    setRatings(prev => {
+      const aggregate = { ...prev.aggregate };
+      // optimistic update — refetch will give accurate aggregate
+      const cur = aggregate[m.id] || { rating: null, ratings: 0 };
+      aggregate[m.id] = { rating: score, ratings: (cur.ratings || 0) + 1 };
+      return { aggregate, mine: { ...prev.mine, [m.id]: score } };
+    });
+    await API.logActivity({
+      user, materialId: m.id, materialTitle: m.title, actionType: 'rating', rating: score,
+    });
+    showToast('Оценка сохранена');
+    setLogRefresh(k => k + 1);
+  };
+
+  // ---- Render ----------------------------------------------------
+  if (!authReady) {
+    return <AuthShell><div style={{ textAlign: 'center', color: 'var(--ink-3)', fontSize: 13 }}>Подключаемся…</div></AuthShell>;
+  }
+
+  // Recovery flow always wins over a stale session
+  if (authScreen === 'newpass') {
+    return <AuthShell><NewPass onDone={(u) => { if (u) setUser(buildUser(u)); setAuthScreen('login'); showToast('Пароль обновлён'); }} /></AuthShell>;
+  }
+
+  if (!user) {
+    return (
+      <>
+        <AuthShell>
+          {authScreen === 'login'    && <Login    onSwitch={setAuthScreen} />}
+          {authScreen === 'register' && <Register onSwitch={setAuthScreen} />}
+          {authScreen === 'forgot'   && <ForgotPass onSwitch={setAuthScreen} />}
+        </AuthShell>
+        <Toast msg={toast} />
+      </>
+    );
+  }
+
+  // ---- Logged-in app --------------------------------------------
   let title = "", lede = "Актуальные маркетинговые материалы команды", crumbs = ["TRANIO HUB"];
-  let mats = HUB.MATERIALS;
+  let mats = enrichedMaterials;
 
   if (route.section === 'brand') {
     if (route.brand === 'all') {
       title = "Все материалы"; crumbs = ["TRANIO HUB", "Все материалы"];
     } else if (route.brand === 'capital') {
-      title = "Tranio Capital"; mats = HUB.MATERIALS.filter(m => m.brand === 'capital');
+      title = "Tranio Capital"; mats = enrichedMaterials.filter(m => m.brand === 'capital');
       crumbs = ["TRANIO HUB", "Бренды", "Tranio Capital"];
     } else if (route.brand === 'brokerage') {
-      title = "Tranio Brokerage"; mats = HUB.MATERIALS.filter(m => m.brand === 'brokerage');
+      title = "Tranio Brokerage"; mats = enrichedMaterials.filter(m => m.brand === 'brokerage');
       crumbs = ["TRANIO HUB", "Бренды", "Tranio Brokerage"];
     }
   } else if (route.section === 'cat') {
-    const cat = HUB.CATS.find(c => c.id === route.sub.cat);
-    title = cat.label;
-    if (route.sub.sub) {
-      const sub = cat.subs.find(s => s.id === route.sub.sub);
-      title = `${cat.label} ${sub.label.toLowerCase()}`;
-      crumbs = ["TRANIO HUB", "Категории", cat.label, sub.label];
-      mats = HUB.MATERIALS.filter(m => m.cat === cat.id && m.subCat === route.sub.sub);
-    } else {
-      crumbs = ["TRANIO HUB", "Категории", cat.label];
-      mats = HUB.MATERIALS.filter(m => m.cat === cat.id);
+    const cat = CATS.find(c => c.id === route.sub.cat);
+    if (cat) {
+      title = cat.label;
+      if (route.sub.sub) {
+        const sub = cat.subs?.find(s => s.id === route.sub.sub);
+        title = sub ? `${cat.label} — ${sub.label.toLowerCase()}` : cat.label;
+        crumbs = ["TRANIO HUB", "Категории", cat.label, sub?.label || ''];
+        mats = enrichedMaterials.filter(m => m.cat === cat.id && m.subCat === route.sub.sub);
+      } else {
+        crumbs = ["TRANIO HUB", "Категории", cat.label];
+        mats = enrichedMaterials.filter(m => m.cat === cat.id);
+      }
     }
   } else if (route.section === 'tg') {
     crumbs = ["TRANIO HUB", "Telegram-каналы"];
@@ -601,45 +1059,54 @@ const App = () => {
     crumbs = ["TRANIO HUB", "Лог скачиваний"];
   }
 
+  // Restrict log view to admins
+  if (route.section === 'log' && !user.isAdmin) {
+    return (
+      <div className="app">
+        <Sidebar section={route.section} sub={route.sub} brand={route.brand} onNav={setRoute} cats={CATS} brands={BRANDS} syncedAt={syncedAt} />
+        <main className="main">
+          <Topbar crumbs={crumbs} userName={user.name} userIni={user.ini} onLogout={handleLogout} />
+          <div className="main-inner">
+            <div className="empty">
+              <div className="glyph">— ACCESS DENIED —</div>
+              <h3>Раздел только для админов</h3>
+              <p>Лог активности доступен пользователям с правами администратора.</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
-    <div className="app" data-screen-label={`section ${route.section}`}>
-      <Sidebar section={route.section} sub={route.sub} brand={route.brand} onNav={onNav} />
-      <main className="main">
-        <Topbar crumbs={crumbs} />
-        <div className="main-inner">
-          {route.section === 'tg' ? <TgView /> :
-           route.section === 'log' ? <LogView /> :
-           <MaterialsView title={title} lede={lede} materials={mats} onOpen={setOpenMaterial} />}
-        </div>
-      </main>
-      {openMaterial && <Modal m={openMaterial} onClose={() => setOpenMaterial(null)} />}
-    </div>
+    <>
+      <div className="app" data-screen-label={`section ${route.section}`}>
+        <Sidebar section={route.section} sub={route.sub} brand={route.brand} onNav={setRoute}
+                 cats={CATS} brands={BRANDS} syncedAt={syncedAt} />
+        <main className="main">
+          <Topbar crumbs={crumbs} userName={user.name} userIni={user.ini} onLogout={handleLogout} />
+          <div className="main-inner">
+            {dataLoading && enrichedMaterials.length === 0 ? (
+              <div style={{ padding: 40, color: 'var(--ink-3)', fontSize: 14 }}>Загружаем материалы…</div>
+            ) : route.section === 'tg' ? <TgView /> :
+                route.section === 'log' ? <LogView refreshKey={logRefresh} /> :
+                <MaterialsView title={title} lede={lede} materials={mats} allMaterials={enrichedMaterials} onOpen={setOpenMaterial} />}
+          </div>
+        </main>
+        {openMaterial && (
+          <Modal m={openMaterial}
+                 onClose={() => setOpenMaterial(null)}
+                 onDownload={handleDownload}
+                 onRate={handleRate}
+                 myRating={ratings.mine?.[openMaterial.id]} />
+        )}
+      </div>
+      <Toast msg={toast} />
+    </>
   );
 };
 
-// ---------- Login ----------
-const Login = ({ onLogin }) => {
-  return (
-    <div className="login-page" data-screen-label="login">
-      <form className="login-card" onSubmit={(e) => { e.preventDefault(); onLogin(); }}>
-        <div className="login-brand">tranio<span className="dot">.</span>hub</div>
-        <div className="login-sub">маркетинговые материалы — только для команды</div>
-        <div className="field">
-          <label>Email</label>
-          <input type="email" defaultValue="evgenii@tranio.com" />
-        </div>
-        <div className="field">
-          <label>Пароль</label>
-          <input type="password" defaultValue="••••••••" />
-        </div>
-        <button className="btn" type="submit">Войти →</button>
-        <div className="login-foot">
-          <a href="#">Забыли пароль?</a>
-          <span>Нет аккаунта? <a href="#">Зарегистрироваться</a></span>
-        </div>
-      </form>
-    </div>
-  );
-};
-
+// ============================================================
+// Mount
+// ============================================================
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
