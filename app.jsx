@@ -662,9 +662,19 @@ const LogView = ({ refreshKey }) => {
         <div>
           <h1>Лог скачиваний</h1>
           <div className="lede">
-            Кто, когда и что скачал — {log.length} записей в базе
+            Кто, когда и что скачал — {log.length} записей в окне
             {filtered.length !== log.length ? ` · ${filtered.length} по фильтру` : ''}
           </div>
+        </div>
+        <div className="actions">
+          <button className="btn secondary" onClick={async () => {
+            try {
+              const n = await API.exportActivityLogCSV();
+              alert(`Готово — выгружено ${n} записей в CSV.`);
+            } catch (e) {
+              alert('Не удалось выгрузить CSV: ' + (e.message || e));
+            }
+          }}><Ic.dl /> Скачать весь архив CSV</button>
         </div>
       </div>
 

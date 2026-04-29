@@ -226,10 +226,11 @@
   async function loadActivityLog() {
     try {
       // Existing schema (preserved): file_id, file_title, user_email, user_name, action, created_at
-      // Bumped limit so older Ksyusha-style entries don't disappear off the
-      // bottom — pagination on the client handles readability.
+      // 10k covers ~3 years of activity for a small team. For full archive
+      // beyond this window, the admin can use exportActivityLogCSV() which
+      // pages through every row in the table.
       const { data, error } = await sb.from('activity_log')
-        .select('*').order('created_at', { ascending: false }).limit(5000);
+        .select('*').order('created_at', { ascending: false }).limit(10000);
       if (error) throw error;
       return (data || []).map(r => ({
         file: r.file_title || '',
@@ -364,6 +365,53 @@
     }
   }
 
+  // ---- Full-archive CSV export -------------------------------------
+  // Pages through the ENTIRE activity_log table (no row cap), builds a
+  // BOM-prefixed UTF-8 CSV, and triggers a browser download. Intended as
+  // an "archive whenever you want" escape hatch — the live UI works against
+  // a windowed view of the same data.
+  async function exportActivityLogCSV() {
+    const all = [];
+    const BATCH = 1000;
+    let from = 0;
+    // Hard ceiling so a misbehaving paginator can never DOS the browser.
+    const MAX_ROWS = 200000;
+    while (all.length < MAX_ROWS) {
+      const { data, error } = await sb.from('activity_log')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(from, from + BATCH - 1);
+      if (error) throw error;
+      if (!data || !data.length) break;
+      all.push(...data);
+      if (data.length < BATCH) break;
+      from += BATCH;
+    }
+
+    const headers = ['created_at', 'user_name', 'user_email', 'file_id', 'file_title', 'action'];
+    const esc = (v) => {
+      const s = v == null ? '' : String(v);
+      // Wrap fields containing commas/quotes/newlines and double-up internal quotes
+      return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const rows = [headers.join(',')];
+    for (const r of all) rows.push(headers.map(h => esc(r[h])).join(','));
+
+    // BOM so Excel (Windows) doesn't mangle UTF-8 cyrillic
+    const csv = '﻿' + rows.join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `tranio-hub-log-${stamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    return all.length;
+  }
+
   // ---- Helpers ------------------------------------------------------
   function actionLabel(t) {
     // Match the legacy values used by the existing activity_log rows
@@ -449,7 +497,7 @@
     COUNTRIES,
     CAT_KIND,
     loadMaterials, loadTgPosts, loadActivityLog, loadDistinctLogUsers,
-    loadDownloadCounts, loadRatings,
+    loadDownloadCounts, loadRatings, exportActivityLogCSV,
     logActivity, bumpDownloadCount, setRating,
     deriveCatsAndBrands, applyEnrichments,
     formatLogDate, actionLabel, getDriveThumb,
