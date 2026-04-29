@@ -1019,13 +1019,23 @@ const App = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [materials.length]);
 
+  // Track the previous openMaterial so we only clear the hash on a real
+  // close transition. Without this guard the very first render would fire
+  // with openMaterial=null and wipe a freshly-arrived #m-{id} hash before
+  // the deep-link effect above ever gets to read it.
+  const prevOpenRef = useRef(null);
   useEffect(() => {
     if (openMaterial) {
       const next = `#m-${openMaterial.id}`;
       if (location.hash !== next) history.replaceState(null, '', location.pathname + next);
-    } else {
-      if (location.hash) history.replaceState(null, '', location.pathname);
+    } else if (prevOpenRef.current) {
+      // Closed → strip the #m-{id} we put there, but leave any unrelated
+      // hash (e.g. Supabase recovery tokens) alone.
+      if (location.hash.startsWith('#m-')) {
+        history.replaceState(null, '', location.pathname);
+      }
     }
+    prevOpenRef.current = openMaterial;
   }, [openMaterial]);
 
   useEffect(() => {
