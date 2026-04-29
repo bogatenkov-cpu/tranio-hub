@@ -276,12 +276,19 @@ const FilterRail = ({ filters, onChange, materials }) => {
 // ============================================================
 const Card = ({ m, onOpen }) => {
   const isDark = m.cover === 'dark';
+  const thumb = API.getDriveThumb(m.url) || API.getDriveThumb(m.teaserUrl);
+  const showThumb = thumb && !isDark;
   return (
     <article className="card" onClick={() => onOpen(m)}>
-      <div className={`card-cover ${!isDark ? 'placeholder' : ''}`} style={isDark ? {background: '#1c2230'} : {}}>
+      <div className={`card-cover ${!isDark && !showThumb ? 'placeholder' : ''}`}
+           style={isDark
+             ? {background: '#1c2230'}
+             : showThumb
+               ? {background: `#fbf8f2 url("${thumb}") center/cover no-repeat`}
+               : {}}>
         {m.isNew && <span className="ribbon-new">Новое</span>}
         <span className="filetype">{m.type}</span>
-        {!isDark && <span className="ph-text">{m.kind}</span>}
+        {!isDark && !showThumb && <span className="ph-text">{m.kind}</span>}
         {isDark && (
           <div style={{
             color: '#e8e2d2', fontFamily: 'serif', fontWeight: 700,
@@ -316,7 +323,7 @@ const Card = ({ m, onOpen }) => {
 // ============================================================
 // Modal
 // ============================================================
-const Modal = ({ m, onClose, onDownload, onRate, myRating }) => {
+const Modal = ({ m, onClose, onDownload, onRate, onTemplateCopy, myRating }) => {
   const [copied, setCopied] = useState(false);
   const [tplCopied, setTplCopied] = useState(false);
   const [rating, setRating] = useState(myRating || 0);
@@ -324,22 +331,33 @@ const Modal = ({ m, onClose, onDownload, onRate, myRating }) => {
   useEffect(() => { setRating(myRating || 0); }, [myRating]);
   if (!m) return null;
   const isDark = m.cover === 'dark';
-  const url = `https://tranio-hub.vercel.app/#m-${m.id}`;
+  const thumb = API.getDriveThumb(m.url) || API.getDriveThumb(m.teaserUrl);
+  const showThumb = thumb && !isDark;
+  const url = `${window.location.origin}${window.location.pathname}#m-${m.id}`;
 
   const handleRate = (i) => {
     setRating(i);
     onRate?.(m, i);
   };
 
-  const handleDownload = () => {
-    onDownload?.(m);
-    if (m.url) window.open(m.url, '_blank', 'noopener');
+  const handleDownload = (kind) => {
+    // kind: 'download' | 'teaser' | 'onepage'
+    const targetUrl = kind === 'teaser'  ? m.teaserUrl
+                    : kind === 'onepage' ? m.onepageUrl
+                    : m.url;
+    onDownload?.(m, kind || 'download');
+    if (targetUrl) window.open(targetUrl, '_blank', 'noopener');
   };
 
   return (
     <div className="modal-back" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
-        <div className={`modal-cover ${!isDark ? 'placeholder' : ''}`} style={isDark ? {background: '#1c2230'} : {}}>
+        <div className={`modal-cover ${!isDark && !showThumb ? 'placeholder' : ''}`}
+             style={isDark
+               ? {background: '#1c2230'}
+               : showThumb
+                 ? {background: `#fbf8f2 url("${thumb}") center/cover no-repeat`}
+                 : {}}>
           <button className="modal-close" onClick={onClose}><Ic.x /></button>
           {isDark ? (
             <div style={{
@@ -348,12 +366,12 @@ const Modal = ({ m, onClose, onDownload, onRate, myRating }) => {
             }}>
               {m.title}
             </div>
-          ) : (
+          ) : !showThumb ? (
             <div style={{
               fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.14em',
               color: 'var(--ink-4)', textTransform: 'uppercase'
             }}>{m.kind} — превью</div>
-          )}
+          ) : null}
         </div>
         <div className="modal-body">
           <div className="modal-kind">{m.kind}</div>
@@ -395,6 +413,7 @@ const Modal = ({ m, onClose, onDownload, onRate, myRating }) => {
                 <button className="btn secondary sm copy-btn" onClick={() => {
                   navigator.clipboard?.writeText(m.template);
                   setTplCopied(true); setTimeout(() => setTplCopied(false), 1400);
+                  onTemplateCopy?.(m);
                 }}><Ic.copy />{tplCopied ? 'Скопировано' : 'Копировать'}</button>
                 {m.template}
               </div>
@@ -403,7 +422,23 @@ const Modal = ({ m, onClose, onDownload, onRate, myRating }) => {
 
           {m.url && (
             <div className="dl-row">
-              <button className="dl-btn" onClick={handleDownload}><span className="icon"><Ic.dl /></span> Скачать полную версию</button>
+              <button className="dl-btn" onClick={() => handleDownload('download')}>
+                <span className="icon"><Ic.dl /></span> Скачать полную версию
+              </button>
+            </div>
+          )}
+          {m.teaserUrl && (
+            <div className="dl-row" style={{ marginTop: 8 }}>
+              <button className="dl-btn" onClick={() => handleDownload('teaser')}>
+                <span className="icon"><Ic.dl /></span> Скачать тизер
+              </button>
+            </div>
+          )}
+          {m.onepageUrl && (
+            <div className="dl-row" style={{ marginTop: 8 }}>
+              <button className="dl-btn" onClick={() => handleDownload('onepage')}>
+                <span className="icon"><Ic.dl /></span> Скачать 1-page
+              </button>
             </div>
           )}
           <div className="share-row">
@@ -966,6 +1001,52 @@ const App = () => {
     () => API.applyEnrichments(materials, downloadCounts, ratings),
     [materials, downloadCounts, ratings]
   );
+
+  // ---- Hash-based deep linking (#m-{id}) ------------------------
+  // 1) On materials load: read URL hash → open the corresponding modal.
+  // 2) When openMaterial changes: write/clear the hash so URL is shareable.
+  // 3) Listen to hashchange + Escape so back/forward + Esc work as expected.
+  useEffect(() => {
+    if (!enrichedMaterials.length) return;
+    const m = location.hash.match(/^#m-(\d+)/);
+    if (m) {
+      const id = parseInt(m[1], 10);
+      const mat = enrichedMaterials.find(x => x.id === id);
+      if (mat) setOpenMaterial(mat);
+    }
+    // intentionally only on first materials load — running on every change
+    // would re-open the modal after the user closed it
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [materials.length]);
+
+  useEffect(() => {
+    if (openMaterial) {
+      const next = `#m-${openMaterial.id}`;
+      if (location.hash !== next) history.replaceState(null, '', location.pathname + next);
+    } else {
+      if (location.hash) history.replaceState(null, '', location.pathname);
+    }
+  }, [openMaterial]);
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const m = location.hash.match(/^#m-(\d+)/);
+      if (m) {
+        const id = parseInt(m[1], 10);
+        const mat = enrichedMaterials.find(x => x.id === id);
+        if (mat) setOpenMaterial(mat);
+      } else {
+        setOpenMaterial(null);
+      }
+    };
+    const onKey = (e) => { if (e.key === 'Escape') setOpenMaterial(null); };
+    window.addEventListener('hashchange', onHashChange);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('hashchange', onHashChange);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [enrichedMaterials]);
   const { CATS, BRANDS } = useMemo(
     () => API.deriveCatsAndBrands(enrichedMaterials),
     [enrichedMaterials]
@@ -976,13 +1057,36 @@ const App = () => {
     try { await sb.auth.signOut(); } catch (e) { /* ignore */ }
   };
 
-  const handleDownload = async (m) => {
-    const next = await API.bumpDownloadCount(m.id, m.downloads);
-    setDownloadCounts(prev => ({ ...prev, [m.id]: next }));
+  const handleDownload = async (m, kind = 'download') => {
+    // 'download' = main file URL, 'teaser' = teaserUrl, 'onepage' = onepageUrl
+    // Only the main download bumps the counter — teaser / onepage are tracked
+    // as separate action types in the activity log, matching the legacy code.
+    if (kind === 'download') {
+      const next = await API.bumpDownloadCount(m.id, m.downloads);
+      setDownloadCounts(prev => ({ ...prev, [m.id]: next }));
+    }
+    const titleSuffix = kind === 'teaser' ? ' (teaser)' : kind === 'onepage' ? ' (1-page)' : '';
     await API.logActivity({
-      user, materialId: m.id, materialTitle: m.title, actionType: 'download',
+      user,
+      materialId: m.id,
+      materialTitle: m.title + titleSuffix,
+      actionType: kind,
     });
-    showToast('Скачивание зарегистрировано');
+    showToast(kind === 'download' ? 'Скачивание зарегистрировано'
+            : kind === 'teaser'   ? 'Тизер открыт'
+            : kind === 'onepage'  ? '1-page открыт'
+            : 'Зарегистрировано');
+    setLogRefresh(k => k + 1);
+  };
+
+  const handleTemplateCopy = async (m) => {
+    await API.logActivity({
+      user,
+      materialId: m.id,
+      materialTitle: m.title + ' (SMS)',
+      actionType: 'copy_sms',
+    });
+    showToast('Шаблон скопирован');
     setLogRefresh(k => k + 1);
   };
 
@@ -1098,6 +1202,7 @@ const App = () => {
                  onClose={() => setOpenMaterial(null)}
                  onDownload={handleDownload}
                  onRate={handleRate}
+                 onTemplateCopy={handleTemplateCopy}
                  myRating={ratings.mine?.[openMaterial.id]} />
         )}
       </div>

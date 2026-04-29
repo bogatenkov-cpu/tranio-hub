@@ -342,8 +342,26 @@
 
   // ---- Helpers ------------------------------------------------------
   function actionLabel(t) {
-    const m = { download: 'Скачивание', teaser: 'Тизер', sms: 'Шаблон', rating: 'Оценка', view: 'Просмотр' };
+    // Match the legacy values used by the existing activity_log rows
+    const m = {
+      download: 'Скачивание',
+      teaser:   'Тизер',
+      onepage:  '1-page',
+      sms:      'Шаблон',
+      copy_sms: 'Шаблон',
+      rating:   'Оценка',
+      view:     'Просмотр',
+    };
     return m[t] || t || 'Действие';
+  }
+
+  // Convert a Google Drive file URL to a thumbnail URL.
+  // Used by the redesign cards/modals to show real previews instead of the
+  // hatched placeholder when the material lives on Drive.
+  function getDriveThumb(url) {
+    if (!url) return '';
+    const m = String(url).match(/drive\.google\.com\/file\/d\/([^/?]+)/);
+    return m ? `https://drive.google.com/thumbnail?id=${m[1]}&sz=w800` : '';
   }
 
   function formatLogDate(iso) {
@@ -410,6 +428,6 @@
     loadDownloadCounts, loadRatings,
     logActivity, bumpDownloadCount, setRating,
     deriveCatsAndBrands, applyEnrichments,
-    formatLogDate, actionLabel,
+    formatLogDate, actionLabel, getDriveThumb,
   };
 })();
