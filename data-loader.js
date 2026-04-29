@@ -116,11 +116,19 @@
   }
 
   // ---- Adapter: sheet row → design Material shape ------------------
-  // Sheet header (RU): ID | Название | Категория | Подкатегория | Страна
-  //                  | Тип файла | Размер | Дата | Скачиваний | Новинка
-  //                  | Ссылка на файл | Иконка | Описание | (опц. Шаблон)
+  // Actual sheet headers (production):
+  //   ID | Название | Категория | Страна | Тип файла | Дата добавления |
+  //   Новинка | Ссылка на файл | Иконка | Описание | Бренд | tags |
+  //   brief | sms | url_teaser | url_onepage
+  // Map "Tranio Capital" → 'capital' (the investments arm), the rest → 'brokerage'.
+  function normalizeBrand(raw) {
+    const v = String(raw || '').toLowerCase().trim();
+    if (v.includes('capital') || v.includes('инвест')) return 'capital';
+    return 'brokerage';
+  }
+
   function rowToMaterial(row, idx) {
-    // Tolerate english headers as well in case the sheet was renamed
+    // Tolerate english headers and legacy column names
     const get = (...keys) => { for (const k of keys) if (row[k] != null && row[k] !== '') return row[k]; return ''; };
     const rawCat = get('Категория','cat','category').toLowerCase().trim();
     const subRaw = get('Подкатегория','subCat','sub').toLowerCase().trim();
@@ -137,20 +145,33 @@
     const id = parseInt(get('ID','id'), 10) || (idx + 1);
     const title = get('Название','title','Title');
     const desc  = get('Описание','desc','Description');
-    const date  = get('Дата','date','Date');
+    // "Дата добавления" is the canonical column name in prod; fall back to old names
+    const date  = get('Дата добавления','Дата','date','Date');
     const url   = get('Ссылка на файл','url','link');
-    const template = get('Шаблон','template');
+    // Templates for messengers / teaser-share live in `sms` column
+    const template = get('sms','Шаблон','template');
+    const brand    = normalizeBrand(get('Бренд','brand','Brand'));
+    const brief    = get('brief','Бриф');
+    const teaserUrl  = get('url_teaser');
+    const onepageUrl = get('url_onepage');
 
-    // Derived fields the design needs
-    const tags = [];
-    if (country) tags.push(country);
-    if (CAT_KIND[norm.cat] && !tags.includes(CAT_KIND[norm.cat])) tags.push(CAT_KIND[norm.cat]);
+    // Tags: prefer the explicit `tags` column (comma-separated). Otherwise
+    // derive from country/kind so chips don't disappear for old rows.
+    const rawTags = get('tags','Tags');
+    let tags;
+    if (rawTags) {
+      tags = rawTags.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+    } else {
+      tags = [];
+      if (country) tags.push(country);
+      if (CAT_KIND[norm.cat] && !tags.includes(CAT_KIND[norm.cat])) tags.push(CAT_KIND[norm.cat]);
+    }
 
     return {
       id, title, desc,
       cat: norm.cat,
       subCat,
-      brand: 'brokerage', // default; sheet has no brand column yet
+      brand,
       country,
       date,
       downloads,
@@ -162,6 +183,7 @@
       kind: CAT_KIND[norm.cat] || 'Материал',
       cover: norm.cat === 'webinars' ? 'dark' : undefined,
       url, template,
+      brief, teaserUrl, onepageUrl,
     };
   }
 
