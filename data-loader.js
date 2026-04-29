@@ -226,8 +226,10 @@
   async function loadActivityLog() {
     try {
       // Existing schema (preserved): file_id, file_title, user_email, user_name, action, created_at
+      // Bumped limit so older Ksyusha-style entries don't disappear off the
+      // bottom — pagination on the client handles readability.
       const { data, error } = await sb.from('activity_log')
-        .select('*').order('created_at', { ascending: false }).limit(500);
+        .select('*').order('created_at', { ascending: false }).limit(5000);
       if (error) throw error;
       return (data || []).map(r => ({
         file: r.file_title || '',
@@ -240,6 +242,28 @@
       }));
     } catch (e) {
       console.warn('[data-loader] activity_log fetch failed:', e.message);
+      return [];
+    }
+  }
+
+  // Distinct users from the entire activity_log — used to populate the
+  // "Сотрудник" filter so it stays complete even when the loaded log
+  // window doesn't include some user's most recent download.
+  async function loadDistinctLogUsers() {
+    try {
+      // Supabase free tier: SELECT user_name, user_email; dedupe client-side.
+      // .limit() is large enough to cover years of small-team activity.
+      const { data, error } = await sb.from('activity_log')
+        .select('user_name, user_email').limit(20000);
+      if (error) throw error;
+      const set = new Set();
+      (data || []).forEach(r => {
+        const u = (r.user_name || r.user_email || '').trim();
+        if (u) set.add(u);
+      });
+      return Array.from(set).sort((a, b) => a.localeCompare(b, 'ru'));
+    } catch (e) {
+      console.warn('[data-loader] distinct users fetch failed:', e.message);
       return [];
     }
   }
@@ -424,7 +448,7 @@
     sb,
     COUNTRIES,
     CAT_KIND,
-    loadMaterials, loadTgPosts, loadActivityLog,
+    loadMaterials, loadTgPosts, loadActivityLog, loadDistinctLogUsers,
     loadDownloadCounts, loadRatings,
     logActivity, bumpDownloadCount, setRating,
     deriveCatsAndBrands, applyEnrichments,

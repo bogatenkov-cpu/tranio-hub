@@ -594,17 +594,28 @@ const TgView = () => {
 // ============================================================
 // Activity log view — reads from Supabase activity_log (read-only)
 // ============================================================
+const PAGE_SIZE = 100;
+
 const LogView = ({ refreshKey }) => {
   const [log, setLog] = useState(null);
+  const [allUsers, setAllUsers] = useState([]); // populated separately so the
+                                                // "Сотрудник" filter is complete
+                                                // even if some user's records
+                                                // sit beyond the loaded window
   const [period, setPeriod] = useState('Все');
   const [actionFilter, setActionFilter] = useState('Все');
   const [userFilter, setUserFilter] = useState('Все');
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     let cancelled = false;
     API.loadActivityLog().then(l => { if (!cancelled) setLog(l); });
+    API.loadDistinctLogUsers().then(u => { if (!cancelled) setAllUsers(u); });
     return () => { cancelled = true; };
   }, [refreshKey]);
+
+  // Reset to page 1 whenever a filter changes
+  useEffect(() => { setPage(1); }, [period, actionFilter, userFilter]);
 
   if (log === null) {
     return (
@@ -619,7 +630,12 @@ const LogView = ({ refreshKey }) => {
     );
   }
 
-  const userOptions = ['Все', ...Array.from(new Set(log.map(l => l.user).filter(Boolean))).sort()];
+  // Union of users from the loaded window AND the distinct-users query.
+  // The latter covers users whose records are beyond the 5k loaded rows.
+  const userOptions = ['Все', ...Array.from(new Set([
+    ...allUsers,
+    ...log.map(l => l.user).filter(Boolean),
+  ])).sort((a, b) => a.localeCompare(b, 'ru'))];
   const actionOptions = ['Все', ...Array.from(new Set(log.map(l => l.action).filter(Boolean)))];
 
   const now = new Date();
@@ -635,12 +651,20 @@ const LogView = ({ refreshKey }) => {
     return true;
   });
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageStart = (safePage - 1) * PAGE_SIZE;
+  const pageRows = filtered.slice(pageStart, pageStart + PAGE_SIZE);
+
   return (
     <>
       <div className="page-head">
         <div>
           <h1>Лог скачиваний</h1>
-          <div className="lede">Кто, когда и что скачал — {log.length} записей в базе</div>
+          <div className="lede">
+            Кто, когда и что скачал — {log.length} записей в базе
+            {filtered.length !== log.length ? ` · ${filtered.length} по фильтру` : ''}
+          </div>
         </div>
       </div>
 
@@ -678,33 +702,55 @@ const LogView = ({ refreshKey }) => {
           <p>Попробуйте сбросить фильтры.</p>
         </div>
       ) : (
-        <table className="log-table">
-          <thead>
-            <tr>
-              <th style={{ width: '50%' }}>Файл</th>
-              <th>Пользователь</th>
-              <th>Время</th>
-              <th>Действие</th>
-              <th>Рейтинг</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((l, i) => (
-              <tr key={i}>
-                <td>
-                  <div className="file-cell">
-                    <span className="ftype">{l.raw?.material_type || '—'}</span>
-                    <span>{l.file}</span>
-                  </div>
-                </td>
-                <td className="who">{l.user}</td>
-                <td className="when">{l.when}</td>
-                <td><span className="action-link">{l.action}</span></td>
-                <td className="rate-num">{l.rating ? `${l.rating.toFixed(1)} ★` : '—'}</td>
+        <>
+          <table className="log-table">
+            <thead>
+              <tr>
+                <th style={{ width: '50%' }}>Файл</th>
+                <th>Пользователь</th>
+                <th>Время</th>
+                <th>Действие</th>
+                <th>Рейтинг</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {pageRows.map((l, i) => (
+                <tr key={pageStart + i}>
+                  <td>
+                    <div className="file-cell">
+                      <span className="ftype">{l.raw?.material_type || '—'}</span>
+                      <span>{l.file}</span>
+                    </div>
+                  </td>
+                  <td className="who">{l.user}</td>
+                  <td className="when">{l.when}</td>
+                  <td><span className="action-link">{l.action}</span></td>
+                  <td className="rate-num">{l.rating ? `${l.rating.toFixed(1)} ★` : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {totalPages > 1 && (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              marginTop: 18, gap: 12, fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink-3)'
+            }}>
+              <span>
+                {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, filtered.length)} из {filtered.length}
+              </span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn secondary sm" onClick={() => setPage(1)} disabled={safePage === 1}>« Первая</button>
+                <button className="btn secondary sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1}>‹ Назад</button>
+                <span style={{ alignSelf: 'center', minWidth: 80, textAlign: 'center' }}>
+                  Стр. {safePage} / {totalPages}
+                </span>
+                <button className="btn secondary sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages}>Вперёд ›</button>
+                <button className="btn secondary sm" onClick={() => setPage(totalPages)} disabled={safePage === totalPages}>Последняя »</button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </>
   );
