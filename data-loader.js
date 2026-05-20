@@ -412,6 +412,35 @@
     return all.length;
   }
 
+  // ---- Lightweight session (no Supabase Auth) ---------------------
+  // Team decided to drop password auth: anyone with a @tranio.com email
+  // can sign in. We still need a per-user UUID for the ratings.user_id
+  // column, so we derive one deterministically from the email — same
+  // email always produces the same UUID, so a user's ratings/log are
+  // consistent across sessions and devices.
+  async function emailToUserId(email) {
+    const norm = String(email || '').toLowerCase().trim();
+    const data = new TextEncoder().encode('tranio-hub:v1:' + norm);
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    const b = new Uint8Array(hash).slice(0, 16);
+    const hex = Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20,32)}`;
+  }
+
+  const LOCAL_USER_KEY = 'tranio-hub-user-v1';
+  function getLocalUser() {
+    try {
+      const raw = localStorage.getItem(LOCAL_USER_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+  function setLocalUser(user) {
+    try { localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(user)); } catch (e) {}
+  }
+  function clearLocalUser() {
+    try { localStorage.removeItem(LOCAL_USER_KEY); } catch (e) {}
+  }
+
   // ---- Helpers ------------------------------------------------------
   function actionLabel(t) {
     // Match the legacy values used by the existing activity_log rows
@@ -498,6 +527,7 @@
     CAT_KIND,
     loadMaterials, loadTgPosts, loadActivityLog, loadDistinctLogUsers,
     loadDownloadCounts, loadRatings, exportActivityLogCSV,
+    emailToUserId, getLocalUser, setLocalUser, clearLocalUser,
     logActivity, bumpDownloadCount, setRating,
     deriveCatsAndBrands, applyEnrichments,
     formatLogDate, actionLabel, getDriveThumb,

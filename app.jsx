@@ -3,14 +3,11 @@ const { useState, useMemo, useEffect, useRef, useCallback } = React;
 const API = window.HUB_API;
 const sb  = API.sb;
 
-// ============================================================
-// Auth recovery detection — must happen synchronously on load
-// ============================================================
-let isPasswordRecovery = (function detectRecovery() {
-  const hash = window.location.hash || '';
-  const search = window.location.search || '';
-  return /[#?&]type=recovery/.test(hash) || /[?&]type=recovery/.test(search);
-})();
+// Team auth model: anyone with a @tranio.com email gets in. The "пароль"
+// field is kept for familiarity but is not validated against anything —
+// trusted-team mode. See data-loader.js for the deterministic user-id
+// derivation that keeps ratings.user_id stable per email.
+const ALLOWED_DOMAIN = '@tranio.com';
 
 // ============================================================
 // Icons (tiny inline SVG, monochrome)
@@ -782,7 +779,7 @@ const AuthShell = ({ children }) => (
   </div>
 );
 
-const Login = ({ onSwitch, toast }) => {
+const Login = ({ onLoggedIn }) => {
   const [email, setEmail] = useState('');
   const [pass, setPass]   = useState('');
   const [err, setErr]     = useState('');
@@ -790,172 +787,50 @@ const Login = ({ onSwitch, toast }) => {
   const submit = async (e) => {
     e.preventDefault();
     setErr('');
-    if (!email || !pass) { setErr('Введите email и пароль'); return; }
+    const norm = (email || '').trim().toLowerCase();
+    if (!norm) { setErr('Введите email'); return; }
+    if (!norm.endsWith(ALLOWED_DOMAIN)) {
+      setErr('Доступ только для команды Tranio — нужна почта на @tranio.com');
+      return;
+    }
     setBusy(true);
     try {
-      const { error } = await sb.auth.signInWithPassword({ email: email.trim().toLowerCase(), password: pass });
-      if (error) setErr(error.message);
-      // onAuthStateChange → SIGNED_IN handles the rest
-    } catch (ex) { setErr('Ошибка подключения'); }
-    finally { setBusy(false); }
+      const id = await API.emailToUserId(norm);
+      // Derive a nice human name from the local-part: "m.bulanov" → "M Bulanov"
+      const local = norm.split('@')[0];
+      const name = local
+        .replace(/[._\-]+/g, ' ')
+        .split(' ')
+        .filter(Boolean)
+        .map(w => w[0].toUpperCase() + w.slice(1))
+        .join(' ') || local;
+      const ini = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '??';
+      const user = { id, email: norm, name, ini, isAdmin: isAdminUser({ email: norm }) };
+      API.setLocalUser(user);
+      onLoggedIn(user);
+    } catch (ex) {
+      setErr('Не удалось войти: ' + (ex.message || ex));
+    } finally { setBusy(false); }
   };
   return (
     <form onSubmit={submit}>
       <div className="field">
         <label>Email</label>
-        <input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@tranio.com" />
+        <input type="email" autoComplete="email" value={email}
+               onChange={e => setEmail(e.target.value)}
+               placeholder="you@tranio.com" autoFocus />
       </div>
       <div className="field">
         <label>Пароль</label>
-        <input type="password" autoComplete="current-password" value={pass} onChange={e => setPass(e.target.value)} placeholder="••••••••" />
+        <input type="password" autoComplete="off" value={pass}
+               onChange={e => setPass(e.target.value)}
+               placeholder="••••••••" />
       </div>
       {err && <div style={{ color: '#a8442a', fontSize: 12, marginTop: -6, marginBottom: 10 }}>{err}</div>}
-      <button className="btn" type="submit" disabled={busy}>{busy ? 'Входим…' : 'Войти →'}</button>
-      <div className="login-foot">
-        <a href="#" onClick={(e) => { e.preventDefault(); onSwitch('forgot'); }}>Забыли пароль?</a>
-        <span>Нет аккаунта? <a href="#" onClick={(e) => { e.preventDefault(); onSwitch('register'); }}>Зарегистрироваться</a></span>
+      <button className="btn" type="submit" disabled={busy}>{busy ? 'Заходим…' : 'Войти →'}</button>
+      <div className="login-foot" style={{ fontSize: 11, color: 'var(--ink-4)', lineHeight: 1.5, marginTop: 14 }}>
+        Доступ только для команды Tranio (адреса на @tranio.com).
       </div>
-    </form>
-  );
-};
-
-const Register = ({ onSwitch }) => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [pass, setPass] = useState('');
-  const [err, setErr] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState(false);
-  const submit = async (e) => {
-    e.preventDefault(); setErr('');
-    if (!name || !email || !pass) { setErr('Заполните все поля'); return; }
-    if (pass.length < 6) { setErr('Пароль — минимум 6 символов'); return; }
-    setBusy(true);
-    try {
-      const { data, error } = await sb.auth.signUp({
-        email: email.trim().toLowerCase(),
-        password: pass,
-        options: { data: { name } }
-      });
-      if (error) { setErr(error.message); return; }
-      if (data.user && !data.session) setDone(true); // email confirmation enabled
-      // else SIGNED_IN event will take over
-    } catch (ex) { setErr('Ошибка подключения'); }
-    finally { setBusy(false); }
-  };
-  if (done) {
-    return (
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 32, marginBottom: 12 }}>✉</div>
-        <div style={{ fontSize: 14, color: 'var(--ink)', marginBottom: 8 }}>Проверьте почту</div>
-        <div style={{ fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.5 }}>
-          Мы отправили письмо с подтверждением. Откройте его, чтобы завершить регистрацию.
-        </div>
-        <div style={{ marginTop: 16 }}>
-          <a href="#" onClick={(e) => { e.preventDefault(); onSwitch('login'); }} style={{ color: 'var(--accent)' }}>Назад к входу</a>
-        </div>
-      </div>
-    );
-  }
-  return (
-    <form onSubmit={submit}>
-      <div className="field">
-        <label>Имя</label>
-        <input type="text" autoComplete="name" value={name} onChange={e => setName(e.target.value)} placeholder="Иван Петров" />
-      </div>
-      <div className="field">
-        <label>Email</label>
-        <input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@tranio.com" />
-      </div>
-      <div className="field">
-        <label>Пароль (мин. 6 символов)</label>
-        <input type="password" autoComplete="new-password" value={pass} onChange={e => setPass(e.target.value)} placeholder="••••••••" />
-      </div>
-      {err && <div style={{ color: '#a8442a', fontSize: 12, marginTop: -6, marginBottom: 10 }}>{err}</div>}
-      <button className="btn" type="submit" disabled={busy}>{busy ? 'Создаём…' : 'Зарегистрироваться'}</button>
-      <div className="login-foot">
-        <span>Уже есть аккаунт? <a href="#" onClick={(e) => { e.preventDefault(); onSwitch('login'); }}>Войти</a></span>
-      </div>
-    </form>
-  );
-};
-
-const ForgotPass = ({ onSwitch }) => {
-  const [email, setEmail] = useState('');
-  const [err, setErr] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [sent, setSent] = useState(false);
-  const submit = async (e) => {
-    e.preventDefault(); setErr('');
-    if (!email) { setErr('Введите email'); return; }
-    setBusy(true);
-    try {
-      const { error } = await sb.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-        redirectTo: window.location.origin + window.location.pathname,
-      });
-      if (error) { setErr(error.message); return; }
-      setSent(true);
-    } catch (ex) { setErr('Ошибка подключения'); }
-    finally { setBusy(false); }
-  };
-  if (sent) {
-    return (
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 32, marginBottom: 12 }}>✉</div>
-        <div style={{ fontSize: 14, color: 'var(--ink)', marginBottom: 8 }}>Проверьте почту</div>
-        <div style={{ fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.5 }}>
-          Мы отправили ссылку для сброса пароля. Откройте её, чтобы задать новый пароль.
-        </div>
-        <div style={{ marginTop: 16 }}>
-          <a href="#" onClick={(e) => { e.preventDefault(); onSwitch('login'); }} style={{ color: 'var(--accent)' }}>Назад к входу</a>
-        </div>
-      </div>
-    );
-  }
-  return (
-    <form onSubmit={submit}>
-      <div className="field">
-        <label>Email</label>
-        <input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@tranio.com" />
-      </div>
-      {err && <div style={{ color: '#a8442a', fontSize: 12, marginTop: -6, marginBottom: 10 }}>{err}</div>}
-      <button className="btn" type="submit" disabled={busy}>{busy ? 'Отправляем…' : 'Отправить ссылку для сброса'}</button>
-      <div className="login-foot">
-        <a href="#" onClick={(e) => { e.preventDefault(); onSwitch('login'); }}>Назад к входу</a>
-      </div>
-    </form>
-  );
-};
-
-const NewPass = ({ onDone }) => {
-  const [pass, setPass] = useState('');
-  const [err, setErr] = useState('');
-  const [busy, setBusy] = useState(false);
-  const submit = async (e) => {
-    e.preventDefault(); setErr('');
-    if (!pass || pass.length < 6) { setErr('Минимум 6 символов'); return; }
-    setBusy(true);
-    try {
-      const { data, error } = await sb.auth.updateUser({ password: pass });
-      if (error) { setErr(error.message); return; }
-      // Recovery flow done — clean URL so refresh doesn't re-enter
-      isPasswordRecovery = false;
-      if (window.location.hash || window.location.search.includes('type=recovery')) {
-        history.replaceState(null, '', window.location.pathname);
-      }
-      onDone?.(data?.user);
-    } catch (ex) { setErr('Ошибка подключения'); }
-    finally { setBusy(false); }
-  };
-  return (
-    <form onSubmit={submit}>
-      <div style={{ fontSize: 14, color: 'var(--ink)', textAlign: 'center', marginBottom: 14 }}>Задайте новый пароль</div>
-      <div className="field">
-        <label>Новый пароль (мин. 6 символов)</label>
-        <input type="password" autoComplete="new-password" value={pass} onChange={e => setPass(e.target.value)} placeholder="••••••••" />
-      </div>
-      {err && <div style={{ color: '#a8442a', fontSize: 12, marginTop: -6, marginBottom: 10 }}>{err}</div>}
-      <button className="btn" type="submit" disabled={busy}>{busy ? 'Сохраняем…' : 'Сохранить новый пароль'}</button>
     </form>
   );
 };
@@ -964,10 +839,9 @@ const NewPass = ({ onDone }) => {
 // App — top-level orchestrator
 // ============================================================
 const App = () => {
-  // Auth state
+  // Auth state — trusted-team mode, see ALLOWED_DOMAIN above.
   const [authReady, setAuthReady] = useState(false);
   const [user, setUser] = useState(null); // null = logged out
-  const [authScreen, setAuthScreen] = useState('login'); // login | register | forgot | newpass
   const [toast, setToast] = useState('');
 
   // Data state
@@ -989,46 +863,15 @@ const App = () => {
   }, []);
 
   // ---- Auth bootstrap -------------------------------------------
+  // Just re-hydrate the user from localStorage. No Supabase Auth involved.
   useEffect(() => {
-    (async () => {
-      const { data: { session } } = await sb.auth.getSession();
-      if (session && isPasswordRecovery) {
-        setAuthScreen('newpass');
-        setAuthReady(true);
-      } else if (session) {
-        setUser(buildUser(session.user));
-        setAuthReady(true);
-      } else {
-        setAuthReady(true);
-      }
-    })();
-
-    const { data: { subscription } } = sb.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        isPasswordRecovery = true;
-        setAuthScreen('newpass');
-        setUser(null);
-        return;
-      }
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session && !isPasswordRecovery) {
-        setUser(buildUser(session.user));
-      }
-      if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setMaterials([]);
-        isPasswordRecovery = false;
-        setAuthScreen('login');
-      }
-    });
-    return () => subscription?.unsubscribe();
+    const local = API.getLocalUser();
+    if (local) setUser(local);
+    setAuthReady(true);
+    // If a stale Supabase session is hanging around from before the
+    // trusted-team migration, drop it so it can't leak credentials.
+    sb.auth.signOut().catch(() => { /* ignore */ });
   }, []);
-
-  function buildUser(u) {
-    const meta = u.user_metadata || {};
-    const name = meta.name || (u.email || '').split('@')[0] || 'Пользователь';
-    const ini = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2) || '??';
-    return { id: u.id, email: u.email, name, ini, isAdmin: isAdminUser(u) };
-  }
 
   // ---- Data loading (after sign-in) -----------------------------
   useEffect(() => {
@@ -1119,8 +962,12 @@ const App = () => {
   );
 
   // ---- Actions ---------------------------------------------------
-  const handleLogout = async () => {
-    try { await sb.auth.signOut(); } catch (e) { /* ignore */ }
+  const handleLogout = () => {
+    API.clearLocalUser();
+    setUser(null);
+    setMaterials([]);
+    setDownloadCounts({});
+    setRatings({ aggregate: {}, mine: {} });
   };
 
   const handleDownload = async (m, kind = 'download') => {
@@ -1177,18 +1024,11 @@ const App = () => {
     return <AuthShell><div style={{ textAlign: 'center', color: 'var(--ink-3)', fontSize: 13 }}>Подключаемся…</div></AuthShell>;
   }
 
-  // Recovery flow always wins over a stale session
-  if (authScreen === 'newpass') {
-    return <AuthShell><NewPass onDone={(u) => { if (u) setUser(buildUser(u)); setAuthScreen('login'); showToast('Пароль обновлён'); }} /></AuthShell>;
-  }
-
   if (!user) {
     return (
       <>
         <AuthShell>
-          {authScreen === 'login'    && <Login    onSwitch={setAuthScreen} />}
-          {authScreen === 'register' && <Register onSwitch={setAuthScreen} />}
-          {authScreen === 'forgot'   && <ForgotPass onSwitch={setAuthScreen} />}
+          <Login onLoggedIn={setUser} />
         </AuthShell>
         <Toast msg={toast} />
       </>
